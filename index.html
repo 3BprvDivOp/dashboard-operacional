@@ -302,6 +302,12 @@ L.geoJSON(malha, {
 var eventos = [];
 var markersLayer = L.layerGroup().addTo(map);
 
+var heatLayer = L.heatLayer([], {
+    radius: 25,
+    blur: 20,
+    maxZoom: 15
+});
+
 // 🔥 CARREGAMENTO PROFISSIONAL DO JSON
 fetch("dados/eventos_mapa_light.json")
     .then(response => response.json())
@@ -374,6 +380,7 @@ function ativarMultiClick(id){
 function aplicarFiltro(){
 
     markersLayer.clearLayers();
+    heatLayer.setLatLngs([]);
 
     var ciaSel = getSelecionados("filtroCia");
     var pelSel = getSelecionados("filtroPelotao");
@@ -493,10 +500,20 @@ markersLayer.bringToFront();
 }
 
 function limparFiltro(){
+
     document.querySelectorAll("select").forEach(s=>s.selectedIndex=-1);
     document.querySelectorAll("input[type=date]").forEach(i=>i.value="");
     document.querySelectorAll("input[type=checkbox]").forEach(c=>c.checked=false);
+
+    // 🔹 limpa pontos
     markersLayer.clearLayers();
+
+    // 🔹 limpa heatmap
+    heatLayer.setLatLngs([]);
+    map.removeLayer(heatLayer);
+
+    // 🔹 garante que volta para modo pontos
+    map.addLayer(markersLayer);
 
     // 🔽 remover destaque visual de filtro ativo
     document.querySelector(".sidebar").classList.remove("ativo");
