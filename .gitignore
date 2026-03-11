@@ -1,0 +1,5 @@
+MAPA_OPERACIONAL_FINAL*
+dados_diversos/
+eventos_processados.json
+*.parquet
+*.xlsx
