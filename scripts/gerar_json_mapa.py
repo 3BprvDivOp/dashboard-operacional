@@ -61,6 +61,10 @@ colunas_mapa = [
 
 df_mapa = df[colunas_mapa].copy()
 
+# Corrigir nome do campo ANO para o dashboard
+if "Ano" in df_mapa.columns:
+    df_mapa = df_mapa.rename(columns={"Ano": "ANO"})
+
 # ==============================
 # REMOVER SEM COORDENADAS
 # ==============================
