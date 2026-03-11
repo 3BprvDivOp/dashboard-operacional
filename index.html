@@ -319,7 +319,7 @@ L.control.layers(null, overlayMaps, {
 }).addTo(map);
 
 // 🔥 CARREGAMENTO PROFISSIONAL DO JSON
-fetch("dados/eventos_mapa_light.json")
+fetch("dados/eventos_mapa_light.json?v=" + Date.now())
     .then(response => response.json())
     .then(data => {
         eventos = data;
