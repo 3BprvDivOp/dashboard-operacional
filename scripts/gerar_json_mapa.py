@@ -1,101 +1,85 @@
-import os
-import json
 import pandas as pd
-import numpy as np
+import os
 
 print("Carregando eventos processados...")
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# ===============================
+# CARREGAR JSON PROCESSADO
+# ===============================
 
-caminho_entrada = os.path.join(BASE_DIR, "eventos_processados.json")
-caminho_saida = os.path.join(BASE_DIR, "dados", "eventos_mapa_light.json")
-
-# ==============================
-# CARREGAR DADOS
-# ==============================
-
-with open(caminho_entrada, "r", encoding="utf-8") as f:
-    dados = json.load(f)
-
-df = pd.DataFrame(dados)
+df = pd.read_json("eventos_processados.json")
 
 print("Colunas encontradas no dataset:")
 print(df.columns)
 
-# ==============================
-# CRIAR CAMPOS NECESSÁRIOS
-# ==============================
-
-# Padronizar nome do campo ANO
-if "Ano" in df.columns:
-    df["ANO"] = df["Ano"]
-
-# Campos de vítimas (caso não existam)
-df["TOTAL_FATAL"] = df.get("TOTAL_FATAL", 0)
-df["TOTAL_GRAVE"] = df.get("TOTAL_GRAVE", 0)
-df["TOTAL_LEVE"] = df.get("TOTAL_LEVE", 0)
-
-df["TEM_FATAL"] = df["TOTAL_FATAL"] > 0
-df["TEM_GRAVE"] = df["TOTAL_GRAVE"] > 0
-df["TEM_LEVE"] = df["TOTAL_LEVE"] > 0
-
-# ==============================
-# COLUNAS PARA O MAPA
-# ==============================
+# ===============================
+# COLUNAS NECESSÁRIAS PARA O MAPA
+# ===============================
 
 colunas_mapa = [
+
     "LATITUDE",
     "LONGITUDE",
+
+    "Natureza",
+    "TipoAcidente",
+
+    "Data",
+
     "Cia",
     "Pelotao",
-    "Natureza",
-    "ANO",
-    "Data",
+
+    "ROD_FINAL",
+    "km",
+
+    "TOTAL_FATAL",
+    "TOTAL_GRAVE",
+    "TOTAL_LEVE",
+
     "TEM_FATAL",
     "TEM_GRAVE",
     "TEM_LEVE",
-    "TOTAL_FATAL",
-    "TOTAL_GRAVE",
-    "TOTAL_LEVE"
+
+    "ANO"
+
 ]
 
-df_mapa = df[colunas_mapa].copy()
+# Manter apenas colunas existentes
+colunas_existentes = [c for c in colunas_mapa if c in df.columns]
 
-# Corrigir nome do campo ANO para o dashboard
-if "Ano" in df_mapa.columns:
-    df_mapa = df_mapa.rename(columns={"Ano": "ANO"})
+df_mapa = df[colunas_existentes].copy()
 
-# ==============================
-# REMOVER SEM COORDENADAS
-# ==============================
+# ===============================
+# REMOVER EVENTOS SEM COORDENADA
+# ===============================
 
-df_mapa = df_mapa[
-    df_mapa["LATITUDE"].notna() &
-    df_mapa["LONGITUDE"].notna()
-]
+df_mapa = df_mapa.dropna(subset=["LATITUDE", "LONGITUDE"])
 
-# ==============================
-# CONVERTER DATA
-# ==============================
+# ===============================
+# CONVERTER DATA PARA STRING
+# ===============================
 
-df_mapa["Data"] = df_mapa["Data"].astype(str)
+if "Data" in df_mapa.columns:
+    df_mapa["Data"] = df_mapa["Data"].astype(str)
 
-# ==============================
-# SUBSTITUIR NaN
-# ==============================
+# ===============================
+# GARANTIR PASTA dados/
+# ===============================
 
-df_mapa = df_mapa.replace({np.nan: None})
+if not os.path.exists("dados"):
+    os.makedirs("dados")
 
-# ==============================
-# SALVAR JSON
-# ==============================
+# ===============================
+# SALVAR JSON DO MAPA
+# ===============================
 
-with open(caminho_saida, "w", encoding="utf-8") as f:
-    json.dump(
-        df_mapa.to_dict(orient="records"),
-        f,
-        ensure_ascii=False
-    )
+print("Gerando dados/eventos_mapa_light.json...")
 
-print("JSON do mapa criado com sucesso!")
-print("Total registros no mapa:", len(df_mapa))
+df_mapa.to_json(
+    "dados/eventos_mapa_light.json",
+    orient="records",
+    force_ascii=False
+)
+
+print("JSON do mapa gerado com sucesso!")
+print("Total de eventos no mapa:", len(df_mapa))
