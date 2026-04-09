@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>3BPRv · Sinistralidade</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d1117;--surface:#161b22;--card:#21262d;--border:#30363d;
+  --text:#e6edf3;--muted:#8b949e;--gold:#f0a830;
+  --fatal:#f85149;--grave:#ff8c00;--leve:#d29922;--safe:#3fb950;--blue:#388bfd;
+}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
+/* ── Upload ── */
+#upload-screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:32px;padding:40px 20px}
+.logo-area{text-align:center}
+.logo-badge{color:var(--gold);font-size:11px;letter-spacing:3px;font-weight:700;margin-bottom:8px}
+.logo-title{font-size:42px;font-weight:900;color:#fff}
+.logo-title span{color:var(--gold)}
+.logo-sub{color:var(--muted);margin-top:6px;font-size:14px}
+.drop-zone{width:100%;max-width:460px;border:2px dashed var(--border);border-radius:16px;padding:48px 32px;text-align:center;cursor:pointer;transition:all .2s;background:var(--surface)}
+.drop-zone:hover,.drop-zone.over{border-color:var(--gold);background:rgba(240,168,48,.05)}
+.drop-zone h3{font-size:17px;margin-bottom:8px}
+.drop-zone p{color:var(--muted);font-size:13px;line-height:1.6}
+.drop-zone input{display:none}
+.btn-upload{margin-top:20px;padding:10px 28px;background:var(--gold);color:#000;border:none;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer}
+.upload-note{color:#555;font-size:12px;text-align:center;max-width:380px;line-height:1.6}
+/* ── Dashboard ── */
+#dashboard{display:none}
+.dash-header{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.dash-brand{font-weight:900;font-size:15px;color:var(--gold);letter-spacing:1px}
+.dash-period{color:var(--muted);font-size:12px;margin-top:2px}
+.btn-sm{padding:5px 14px;border:1px solid var(--border);background:var(--card);color:var(--text);border-radius:6px;font-size:12px;cursor:pointer;transition:all .15s}
+.btn-sm:hover{border-color:var(--gold);color:var(--gold)}
+/* KPIs */
+.kpi-bar{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;padding:14px 24px;background:var(--surface);border-bottom:1px solid var(--border)}
+.kpi{background:var(--card);border-radius:10px;padding:13px 16px;border-left:3px solid transparent}
+.kpi.k-total{border-left-color:var(--blue)}.kpi.k-vitima{border-left-color:var(--leve)}
+.kpi.k-fatal{border-left-color:var(--fatal)}.kpi.k-grave{border-left-color:var(--grave)}.kpi.k-leve{border-left-color:var(--leve)}
+.kpi-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
+.kpi-val{font-size:26px;font-weight:900}
+.k-total .kpi-val{color:var(--blue)}.k-vitima .kpi-val{color:var(--leve)}
+.k-fatal .kpi-val{color:var(--fatal)}.k-grave .kpi-val{color:var(--grave)}.k-leve .kpi-val{color:var(--leve)}
+/* Filters */
+.filters{padding:10px 24px;background:var(--bg);display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;border-bottom:1px solid var(--border)}
+.fg{display:flex;flex-direction:column;gap:3px}
+.fl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.filters select,.filters input[type=date]{background:var(--card);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:5px 8px;font-size:12px;min-width:120px}
+.btn-apply{padding:6px 18px;background:var(--gold);color:#000;border:none;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer}
+.btn-clear{padding:6px 12px;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:6px;font-size:12px;cursor:pointer}
+/* Tabs */
+.tabs{display:flex;padding:0 24px;background:var(--surface);border-bottom:1px solid var(--border)}
+.tab{padding:11px 18px;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s}
+.tab.active{color:var(--gold);border-bottom-color:var(--gold)}
+.tab:hover:not(.active){color:var(--text)}
+/* Tab content */
+.tc{display:none;padding:20px 24px}.tc.active{display:block}
+/* Cards */
+.card{background:var(--card);border-radius:12px;padding:18px;border:1px solid var(--border)}
+.ct{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
+.cs{font-size:15px;font-weight:700;margin-bottom:14px}
+/* Grids */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px}
+.g12{display:grid;grid-template-columns:1fr 2fr;gap:14px;margin-bottom:14px}
+/* Charts */
+.cw{position:relative;height:230px}.cwl{position:relative;height:280px}
+/* Rankings */
+.rank-list{display:flex;flex-direction:column;gap:9px}
+.ri{display:flex;align-items:center;gap:8px}
+.rn{color:var(--muted);font-size:11px;width:16px;text-align:right;flex-shrink:0}
+.rnm{font-size:12px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rbw{width:70px;height:5px;background:var(--border);border-radius:3px;flex-shrink:0}
+.rb{height:100%;border-radius:3px;background:var(--gold)}
+.rc{font-size:13px;font-weight:700;width:28px;text-align:right;flex-shrink:0}
+.rf{font-size:11px;color:var(--fatal);width:38px;text-align:right;flex-shrink:0}
+/* Critical cards */
+.cc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+.cc{background:var(--card);border-radius:12px;padding:18px;border:1px solid var(--border);border-top:3px solid var(--fatal)}
+.cc.p2{border-top-color:var(--grave)}.cc.p3{border-top-color:var(--leve)}.cc.p4{border-top-color:#555}
+.cc-tag{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.cc-name{font-size:19px;font-weight:800;margin:4px 0 12px;line-height:1.2}
+.cc-row{display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid var(--border)}
+.cc-row:last-child{border-bottom:none}
+.cc-k{color:var(--muted)}.cc-v{font-weight:600}
+.cc-v.vf{color:var(--fatal)}.cc-v.vg{color:var(--grave)}
+/* Table */
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{background:var(--surface);padding:9px 11px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:8px 11px;border-bottom:1px solid var(--border);vertical-align:middle}
+tr:hover td{background:var(--surface)}
+.bx{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700}
+.bx-f{background:rgba(248,81,73,.15);color:var(--fatal)}.bx-g{background:rgba(255,140,0,.15);color:var(--grave)}
+.bx-l{background:rgba(210,153,34,.15);color:var(--leve)}.bx-s{background:rgba(63,185,80,.15);color:var(--safe)}
+.bx-ma{background:rgba(56,139,253,.15);color:var(--blue)}.bx-ta{background:rgba(240,168,48,.15);color:var(--gold)}
+.bx-no{background:rgba(139,148,158,.15);color:var(--muted)}.bx-md{background:rgba(167,139,250,.15);color:#a78bfa}
+/* Rec cards */
+.rec-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+.rec{background:var(--card);border:1px solid var(--border);border-left:3px solid var(--fatal);border-radius:10px;padding:16px}
+.rec.r2{border-left-color:var(--grave)}.rec.r3{border-left-color:var(--leve)}.rec.r4{border-left-color:#555}
+.rec-pri{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.rec-hora{font-size:26px;font-weight:900;margin:3px 0 3px}
+.rec-sub{font-size:11px;color:var(--muted);margin-bottom:8px}
+.rec-desc{font-size:12px;line-height:1.5;color:#c9d1d9}
+/* Loading */
+#loading{display:none;position:fixed;inset:0;background:rgba(13,17,23,.9);z-index:999;align-items:center;justify-content:center;flex-direction:column;gap:14px}
+#loading p{color:var(--muted);font-size:13px}
+.spin{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:sp .8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media(max-width:768px){.kpi-bar{grid-template-columns:repeat(2,1fr)}.g2,.g3,.g12,.rec-grid{grid-template-columns:1fr}.filters{gap:8px}}
+</style>
+</head>
+<body>
+
+<div id="loading"><div class="spin"></div><p>Processando dados...</p></div>
+
+<!-- UPLOAD -->
+<div id="upload-screen">
+  <div class="logo-area">
+    <div class="logo-badge">POLÍCIA RODOVIÁRIA · ESTADO DE SÃO PAULO</div>
+    <div class="logo-title">3BPRv · <span>Sinistralidade</span></div>
+    <div class="logo-sub">Dashboard Operacional de Análise de Acidentes</div>
+  </div>
+  <div class="drop-zone" id="dropZone">
+    <div style="font-size:36px;margin-bottom:14px">📊</div>
+    <h3>Carregar dados</h3>
+    <p>Arraste e solte o arquivo BOPM exportado do sistema<br>ou clique para selecionar</p>
+    <button class="btn-upload" onclick="document.getElementById('fileInput').click()">Selecionar arquivo (.xlsx)</button>
+    <input type="file" id="fileInput" accept=".xlsx,.xls">
+  </div>
+  <div class="upload-note">Os dados ficam apenas no seu dispositivo.<br>Todo o processamento é feito localmente no navegador.</div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard">
+  <div class="dash-header">
+    <div>
+      <div class="dash-brand">3BPRv · Sinistralidade</div>
+      <div class="dash-period" id="dashPeriod">—</div>
+    </div>
+    <button class="btn-sm" onclick="resetToUpload()">↑ Atualizar dados</button>
+  </div>
+
+  <div class="kpi-bar">
+    <div class="kpi k-total"><div class="kpi-label">Total acidentes</div><div class="kpi-val" id="kTotal">—</div></div>
+    <div class="kpi k-vitima"><div class="kpi-label">Com vítima</div><div class="kpi-val" id="kVitima">—</div></div>
+    <div class="kpi k-fatal"><div class="kpi-label">Vítimas fatais</div><div class="kpi-val" id="kFatal">—</div></div>
+    <div class="kpi k-grave"><div class="kpi-label">Vítimas graves</div><div class="kpi-val" id="kGrave">—</div></div>
+    <div class="kpi k-leve"><div class="kpi-label">Vítimas leves</div><div class="kpi-val" id="kLeve">—</div></div>
+  </div>
+
+  <div class="filters">
+    <div class="fg"><div class="fl">CIA</div><select id="fCia"><option value="">Todas</option></select></div>
+    <div class="fg"><div class="fl">Pelotão</div><select id="fPelotao"><option value="">Todos</option></select></div>
+    <div class="fg"><div class="fl">Rodovia</div><select id="fRodovia"><option value="">Todas</option></select></div>
+    <div class="fg"><div class="fl">Período</div><select id="fPeriodo"><option value="">Todos</option></select></div>
+    <div class="fg"><div class="fl">Tipo acidente</div><select id="fTipo"><option value="">Todos</option></select></div>
+    <div class="fg"><div class="fl">Data início</div><input type="date" id="fDataIn"></div>
+    <div class="fg"><div class="fl">Data fim</div><input type="date" id="fDataFim"></div>
+    <button class="btn-apply" onclick="applyAndRender()">Aplicar</button>
+    <button class="btn-clear" onclick="clearFilters()">Limpar</button>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="showTab('geral',this)">Visão Geral</div>
+    <div class="tab" onclick="showTab('trechos',this)">Trechos Críticos</div>
+    <div class="tab" onclick="showTab('temporal',this)">Análise Temporal</div>
+    <div class="tab" onclick="showTab('tabela',this)">Registros</div>
+  </div>
+
+  <!-- VISÃO GERAL -->
+  <div class="tc active" id="tab-geral">
+    <div class="g2">
+      <div class="card"><div class="ct">acidentes por rodovia</div><div class="cs">Top 10 rodovias</div><div class="cw"><canvas id="chartRodovia"></canvas></div></div>
+      <div class="card"><div class="ct">tipo de acidente</div><div class="cs">Distribuição por tipo</div><div class="cw"><canvas id="chartTipo"></canvas></div></div>
+    </div>
+    <div class="g2">
+      <div class="card"><div class="ct">por CIA</div><div class="cs">Acidentes e vítimas fatais</div><div class="cw"><canvas id="chartCia"></canvas></div></div>
+      <div class="card"><div class="ct">perfil de vítimas</div><div class="cs">Gravidade dos acidentes</div><div class="cw"><canvas id="chartGravidade"></canvas></div></div>
+    </div>
+  </div>
+
+  <!-- TRECHOS CRÍTICOS -->
+  <div class="tc" id="tab-trechos">
+    <div class="g12">
+      <div class="card"><div class="ct">municípios</div><div class="cs">Por volume de acidentes</div><div class="rank-list" id="rankMunicipio"></div></div>
+      <div class="card"><div class="ct">rodovias</div><div class="cs">Ranking por total de acidentes</div><div class="rank-list" id="rankRodovia"></div></div>
+    </div>
+    <div class="card"><div class="ct">trechos prioritários</div><div class="cs">Rodovias com maior concentração de vítimas fatais</div><div class="cc-grid" id="criticalCards"></div></div>
+  </div>
+
+  <!-- TEMPORAL -->
+  <div class="tc" id="tab-temporal">
+    <div class="card" style="margin-bottom:14px"><div class="ct">distribuição por hora</div><div class="cs">Total de acidentes e óbitos nas 24 horas</div><div class="cwl"><canvas id="chartHora"></canvas></div></div>
+    <div class="g2">
+      <div class="card"><div class="ct">período do dia</div><div class="cs">Manhã · Tarde · Noite · Madrugada</div><div class="cw"><canvas id="chartPeriodo"></canvas></div></div>
+      <div class="card"><div class="ct">dia da semana</div><div class="cs">Distribuição semanal de acidentes</div><div class="cw"><canvas id="chartDiaSemana"></canvas></div></div>
+    </div>
+    <div class="card"><div class="ct">recomendações operacionais</div><div class="cs">Sugestão de patrulhamento baseada nos dados</div><div class="rec-grid" id="recGrid"></div></div>
+  </div>
+
+  <!-- REGISTROS -->
+  <div class="tc" id="tab-tabela">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div><div class="ct">registros</div><div class="cs">Todos os acidentes — <span id="tableCount">0</span> registros (exibindo até 500)</div></div>
+      </div>
+      <div class="tw">
+        <table>
+          <thead><tr><th>Data</th><th>Hora</th><th>CIA</th><th>Pelotão</th><th>Rodovia</th><th>KM</th><th>Município</th><th>Tipo</th><th>Gravidade</th><th>Período</th></tr></thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+let allData = [], filteredData = [], charts = {};
+
+// ── Road normalization ──
+function normRod(n){
+  if(!n||n==='--')return'Não informada';
+  const u=String(n).toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+  if(u.includes('WASHINGTON LUIS'))return'SP-310 · Washington Luís';
+  if(u.includes('ANHANGUERA'))return'SP-330 · Via Anhanguera';
+  if(u.includes('EUCLIDES DA CUNHA'))return'SP-320 · Euclides da Cunha';
+  if(u.includes('PORTINARI'))return'SP-334 · Cândido Portinari';
+  if(u.includes('BRIGADEIRO FARIA LIMA'))return'SP-326 · Brigadeiro Faria Lima';
+  if(u.includes('FELICIANO SALLES'))return'SP-322 · Feliciano Salles da Cunha';
+  if(u.includes('GERALDO DE BARROS'))return'SP-304 · Geraldo de Barros';
+  if(u.includes('DUARTE NOGUEIRA'))return'SP-333 · Antônio Duarte Nogueira';
+  if(u.includes('DEDINI')||u.includes('ACUCAR'))return'SP-127 · Comendador Mário Dedini';
+  if(u.includes('FAUSTO SANTOMAURO'))return'SP-215 · Fausto Santomauro';
+  if(u.includes('SALLES OLIVEIRA'))return'SP-255 · Armando de Salles Oliveira';
+  if(u.includes('LUIZ DE QUEIROZ'))return'SP-184 · Luiz de Queiróz';
+  if(u.includes('ABRAO ASSED')||u.includes('ABRAAO ASSED'))return'SP-255 · Abraão Assed';
+  if(u.includes('ASSIS CHATEAUBRIAND'))return'SP-425 · Assis Chateaubriand';
+  return String(n).split(' ').map(w=>w.charAt(0).toUpperCase()+w.slice(1).toLowerCase()).join(' ');
+}
+
+// ── Upload ──
+const dz=document.getElementById('dropZone'), fi=document.getElementById('fileInput');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('over')});
+dz.addEventListener('dragleave',()=>dz.classList.remove('over'));
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('over');loadFile(e.dataTransfer.files[0])});
+fi.addEventListener('change',e=>loadFile(e.target.files[0]));
+
+function loadFile(file){
+  if(!file)return;
+  document.getElementById('loading').style.display='flex';
+  const r=new FileReader();
+  r.onload=e=>{
+    try{
+      const wb=XLSX.read(e.target.result,{type:'array'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const raw=XLSX.utils.sheet_to_json(ws,{defval:''});
+      processData(raw);
+    }catch(err){alert('Erro ao ler arquivo: '+err.message);document.getElementById('loading').style.display='none';}
+  };
+  r.readAsArrayBuffer(file);
+}
+
+function resetToUpload(){
+  document.getElementById('upload-screen').style.display='flex';
+  document.getElementById('dashboard').style.display='none';
+  document.getElementById('fileInput').value='';
+}
+
+// ── Data processing ──
+function processData(raw){
+  allData=raw.filter(r=>{
+    const nat=String(r['Natureza']||'').toUpperCase();
+    return nat.includes('ACIDENTE');
+  }).map(r=>{
+    const fi=v=>isNaN(parseInt(v))?0:parseInt(v);
+    const fatais=fi(r['NumVitimaFataisCrianca'])+fi(r['NumVitimaFataisAdolescente'])+fi(r['NumVitimaFataisAdulto']);
+    const graves=fi(r['NumVitimaGraveCrianca'])+fi(r['NumVitimaGraveAdolescente'])+fi(r['NumVitimaGraveAdulto']);
+    const leves=fi(r['NumVitimaLeveCrianca'])+fi(r['NumVitimaLeveAdolescente'])+fi(r['NumVitimaLeveAdulto']);
+    const hs=String(r['Hora Fato']||'');
+    const hora=parseInt(hs.split(':')[0])||0;
+    const ds=String(r['Data']||'');
+    let dsort=ds, dow=null;
+    if(ds.includes('/')){
+      const[d,m,y]=ds.split('/');
+      dsort=`${(y||'').padStart(4,'0')}-${(m||'').padStart(2,'0')}-${(d||'').padStart(2,'0')}`;
+      const dt=new Date(parseInt(y),parseInt(m)-1,parseInt(d));
+      if(!isNaN(dt.getTime()))dow=dt.getDay();
+    }
+    const per=String(r['Periodo']||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+    return{
+      Data:ds,DataSort:dsort,Hora:hs,HoraNum:hora,DiaSemana:dow,
+      Cia:String(r['Cia']||'--').trim(),
+      Pelotao:String(r['Pelotao']||'--').trim(),
+      Rod:normRod(r['NomeRodovia']),
+      KM:r['km']||'--',
+      Municipio:String(r['Municipio']||'--').trim(),
+      Periodo:per,
+      Tipo:String(r['TipoAcidente']||'--').trim(),
+      Fatais:fatais,Graves:graves,Leves:leves,
+      TEM_FATAL:fatais>0,TEM_GRAVE:graves>0,TEM_LEVE:leves>0,
+    };
+  });
+
+  populateFilters();
+  filteredData=[...allData];
+  renderAll();
+  document.getElementById('upload-screen').style.display='none';
+  document.getElementById('dashboard').style.display='block';
+  document.getElementById('loading').style.display='none';
+}
+
+function populateFilters(){
+  const fill=(id,vals,label='Todos')=>{
+    const s=document.getElementById(id);
+    s.innerHTML=`<option value="">${label}</option>`;
+    [...new Set(vals)].filter(v=>v&&v!=='--'&&v!=='EM'&&v!=='ADM').sort().forEach(v=>{
+      const o=document.createElement('option');o.value=v;o.text=v;s.appendChild(o);
+    });
+  };
+  fill('fCia',allData.map(r=>r.Cia),'Todas');
+  fill('fPelotao',allData.map(r=>r.Pelotao),'Todos');
+  fill('fRodovia',allData.map(r=>r.Rod),'Todas');
+  fill('fPeriodo',allData.map(r=>r.Periodo),'Todos');
+  fill('fTipo',allData.map(r=>r.Tipo).filter(t=>t!=='--'),'Todos');
+  const dates=allData.map(r=>r.DataSort).filter(Boolean).sort();
+  if(dates.length){document.getElementById('fDataIn').value=dates[0];document.getElementById('fDataFim').value=dates[dates.length-1];}
+  const sorted=allData.map(r=>r.Data).sort();
+  document.getElementById('dashPeriod').textContent=sorted[0]+' — '+sorted[sorted.length-1];
+}
+
+function applyAndRender(){
+  const g=id=>document.getElementById(id).value;
+  const[cia,pel,rod,per,tip,din,dfim]=[g('fCia'),g('fPelotao'),g('fRodovia'),g('fPeriodo'),g('fTipo'),g('fDataIn'),g('fDataFim')];
+  filteredData=allData.filter(r=>{
+    if(cia&&r.Cia!==cia)return false;
+    if(pel&&r.Pelotao!==pel)return false;
+    if(rod&&r.Rod!==rod)return false;
+    if(per&&r.Periodo!==per)return false;
+    if(tip&&r.Tipo!==tip)return false;
+    if(din&&r.DataSort<din)return false;
+    if(dfim&&r.DataSort>dfim)return false;
+    return true;
+  });
+  renderAll();
+}
+
+function clearFilters(){
+  ['fCia','fPelotao','fRodovia','fPeriodo','fTipo'].forEach(id=>document.getElementById(id).value='');
+  const dates=allData.map(r=>r.DataSort).filter(Boolean).sort();
+  if(dates.length){document.getElementById('fDataIn').value=dates[0];document.getElementById('fDataFim').value=dates[dates.length-1];}
+  filteredData=[...allData];renderAll();
+}
+
+// ── Tabs ──
+function showTab(id,el){
+  document.querySelectorAll('.tc').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');el.classList.add('active');
+}
+
+// ── Render ──
+function renderAll(){renderKPIs();renderCharts();renderTrechos();renderTemporal();renderTable();}
+
+function renderKPIs(){
+  const d=filteredData;
+  document.getElementById('kTotal').textContent=d.length.toLocaleString('pt-BR');
+  document.getElementById('kVitima').textContent=d.filter(r=>r.TEM_FATAL||r.TEM_GRAVE||r.TEM_LEVE).length.toLocaleString('pt-BR');
+  document.getElementById('kFatal').textContent=d.reduce((s,r)=>s+r.Fatais,0).toLocaleString('pt-BR');
+  document.getElementById('kGrave').textContent=d.reduce((s,r)=>s+r.Graves,0).toLocaleString('pt-BR');
+  document.getElementById('kLeve').textContent=d.reduce((s,r)=>s+r.Leves,0).toLocaleString('pt-BR');
+}
+
+function dc(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
+
+function renderCharts(){
+  const d=filteredData;
+  const gridC='#21262d', tickC='#8b949e';
+  const scales={x:{ticks:{color:tickC,font:{size:10}},grid:{color:gridC}},y:{ticks:{color:tickC,font:{size:10}},grid:{color:gridC}}};
+  const legend={labels:{color:'#8b949e',font:{size:11},boxWidth:12}};
+
+  // Rodovias
+  dc('chartRodovia');
+  const rodMap={};
+  d.forEach(r=>{if(r.Rod!=='Não informada')rodMap[r.Rod]=(rodMap[r.Rod]||0)+1;});
+  const rods=Object.entries(rodMap).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  charts['chartRodovia']=new Chart(document.getElementById('chartRodovia'),{
+    type:'bar',
+    data:{labels:rods.map(([k])=>k.split('·')[1]?.trim()||k),datasets:[{data:rods.map(([,v])=>v),backgroundColor:'#f0a83088',borderColor:'#f0a830',borderWidth:1}]},
+    options:{indexAxis:'y',plugins:{legend:{display:false}},responsive:true,maintainAspectRatio:false,scales:{...scales,y:{ticks:{color:tickC,font:{size:11}},grid:{color:gridC}}}}
+  });
+
+  // Tipos
+  dc('chartTipo');
+  const tipMap={};
+  d.filter(r=>r.Tipo!=='--').forEach(r=>{tipMap[r.Tipo]=(tipMap[r.Tipo]||0)+1;});
+  const tips=Object.entries(tipMap).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  charts['chartTipo']=new Chart(document.getElementById('chartTipo'),{
+    type:'doughnut',
+    data:{labels:tips.map(([k])=>k),datasets:[{data:tips.map(([,v])=>v),backgroundColor:['#388bfd','#f0a830','#3fb950','#f85149','#ff8c00','#a78bfa','#79c0ff','#ffa198'],borderWidth:0}]},
+    options:{plugins:{legend:{position:'right',labels:legend.labels}},responsive:true,maintainAspectRatio:false}
+  });
+
+  // CIA
+  dc('chartCia');
+  const cias=[...new Set(d.map(r=>r.Cia).filter(c=>c&&c!=='--'&&c!=='EM'&&c!=='ADM'))].sort();
+  const ciaFatais={};d.forEach(r=>{ciaFatais[r.Cia]=(ciaFatais[r.Cia]||0)+r.Fatais;});
+  charts['chartCia']=new Chart(document.getElementById('chartCia'),{
+    type:'bar',
+    data:{labels:cias,datasets:[
+      {label:'Total acidentes',data:cias.map(c=>d.filter(r=>r.Cia===c).length),backgroundColor:'#388bfd66',borderColor:'#388bfd',borderWidth:1},
+      {label:'Vítimas fatais',data:cias.map(c=>ciaFatais[c]||0),backgroundColor:'#f8514966',borderColor:'#f85149',borderWidth:1}
+    ]},
+    options:{plugins:{legend},responsive:true,maintainAspectRatio:false,scales}
+  });
+
+  // Gravidade
+  dc('chartGravidade');
+  charts['chartGravidade']=new Chart(document.getElementById('chartGravidade'),{
+    type:'doughnut',
+    data:{
+      labels:['Fatais','Graves','Leves','Sem vítima'],
+      datasets:[{data:[
+        d.reduce((s,r)=>s+r.Fatais,0),
+        d.reduce((s,r)=>s+r.Graves,0),
+        d.reduce((s,r)=>s+r.Leves,0),
+        d.filter(r=>!r.TEM_FATAL&&!r.TEM_GRAVE&&!r.TEM_LEVE).length
+      ],backgroundColor:['#f85149','#ff8c00','#d29922','#3fb950'],borderWidth:0}]
+    },
+    options:{plugins:{legend:{position:'right',labels:legend.labels}},responsive:true,maintainAspectRatio:false}
+  });
+}
+
+function renderTrechos(){
+  const d=filteredData;
+  // Municípios
+  const munMap={};
+  d.forEach(r=>{if(!munMap[r.Municipio])munMap[r.Municipio]={total:0,fatais:0,graves:0};munMap[r.Municipio].total++;munMap[r.Municipio].fatais+=r.Fatais;munMap[r.Municipio].graves+=r.Graves;});
+  const muns=Object.entries(munMap).sort((a,b)=>b[1].fatais-a[1].fatais||b[1].total-a[1].total).slice(0,10);
+  const mmax=muns[0]?.[1]?.total||1;
+  document.getElementById('rankMunicipio').innerHTML=muns.map(([k,v],i)=>`
+    <div class="ri"><div class="rn">${i+1}</div><div class="rnm" title="${k}">${k}</div>
+    <div class="rbw"><div class="rb" style="width:${v.total/mmax*100}%"></div></div>
+    <div class="rc">${v.total}</div><div class="rf">${v.fatais>0?v.fatais+' fat':''}</div></div>`).join('');
+
+  // Rodovias
+  const rodMap={};
+  d.forEach(r=>{if(r.Rod==='Não informada')return;if(!rodMap[r.Rod])rodMap[r.Rod]={total:0,fatais:0,graves:0};rodMap[r.Rod].total++;rodMap[r.Rod].fatais+=r.Fatais;rodMap[r.Rod].graves+=r.Graves;});
+  const rods=Object.entries(rodMap).sort((a,b)=>b[1].total-a[1].total).slice(0,10);
+  const rmax=rods[0]?.[1]?.total||1;
+  document.getElementById('rankRodovia').innerHTML=rods.map(([k,v],i)=>`
+    <div class="ri"><div class="rn">${i+1}</div><div class="rnm" title="${k}">${k.split('·')[1]?.trim()||k}</div>
+    <div class="rbw"><div class="rb" style="width:${v.total/rmax*100}%"></div></div>
+    <div class="rc">${v.total}</div><div class="rf">${v.fatais>0?v.fatais+' fat':''}</div></div>`).join('');
+
+  // Critical cards
+  const topFatal=Object.entries(rodMap).filter(([,v])=>v.fatais>0).sort((a,b)=>b[1].fatais-a[1].fatais).slice(0,6);
+  const pris=['','p2','p3','p4','p4','p4'];
+  const ptags=['⚠ PRIORIDADE MÁXIMA','PRIORIDADE ALTA','PRIORIDADE ALTA','ATENÇÃO','ATENÇÃO','ATENÇÃO'];
+  document.getElementById('criticalCards').innerHTML=topFatal.map(([k,v],i)=>{
+    const recs=d.filter(r=>r.Rod===k);
+    const tm={};recs.filter(r=>r.TEM_FATAL||r.TEM_GRAVE).forEach(r=>{tm[r.Tipo]=(tm[r.Tipo]||0)+1;});
+    const tipoTop=Object.entries(tm).sort((a,b)=>b[1]-a[1])[0]?.[0]||'--';
+    const pm={};recs.filter(r=>r.TEM_FATAL).forEach(r=>{pm[r.Periodo]=(pm[r.Periodo]||0)+1;});
+    const perTop=Object.entries(pm).sort((a,b)=>b[1]-a[1])[0]?.[0]||'--';
+    const perLabel={MANHA:'Manhã',TARDE:'Tarde',NOITE:'Noite',MADRUGADA:'Madrugada'};
+    const km_vals=recs.filter(r=>r.TEM_FATAL&&r.KM&&r.KM!=='--').map(r=>parseFloat(String(r.KM).replace(',','.'))).filter(n=>!isNaN(n)).sort((a,b)=>a-b);
+    const kmInfo=km_vals.length>0?`KM ${km_vals[0].toFixed(0)}–${km_vals[km_vals.length-1].toFixed(0)}`:'KMs variados';
+    return`<div class="cc ${pris[i]}">
+      <div class="cc-tag">${ptags[i]}</div>
+      <div class="cc-name">${k.split('·')[1]?.trim()||k}</div>
+      <div class="cc-row"><span class="cc-k">Concentração</span><span class="cc-v">${kmInfo}</span></div>
+      <div class="cc-row"><span class="cc-k">Total acidentes</span><span class="cc-v">${v.total}</span></div>
+      <div class="cc-row"><span class="cc-k">Vítimas fatais</span><span class="cc-v vf">${v.fatais}</span></div>
+      <div class="cc-row"><span class="cc-k">Vítimas graves</span><span class="cc-v vg">${v.graves}</span></div>
+      <div class="cc-row"><span class="cc-k">Tipo dominante</span><span class="cc-v">${tipoTop}</span></div>
+      <div class="cc-row"><span class="cc-k">Pior período</span><span class="cc-v">${perLabel[perTop]||perTop}</span></div>
+    </div>`;
+  }).join('')||'<p style="color:#8b949e;font-size:13px">Nenhum dado com os filtros atuais.</p>';
+}
+
+function renderTemporal(){
+  const d=filteredData;
+  const gridC='#21262d',tickC='#8b949e';
+  const scales={x:{ticks:{color:tickC,font:{size:10}},grid:{color:gridC}},y:{ticks:{color:tickC,font:{size:10}},grid:{color:gridC}}};
+
+  // Por hora
+  const hc=Array(24).fill(0),hf=Array(24).fill(0);
+  d.forEach(r=>{if(r.HoraNum>=0&&r.HoraNum<24){hc[r.HoraNum]++;hf[r.HoraNum]+=r.Fatais;}});
+  dc('chartHora');
+  charts['chartHora']=new Chart(document.getElementById('chartHora'),{
+    type:'bar',
+    data:{
+      labels:Array.from({length:24},(_,i)=>i.toString().padStart(2,'0')+'h'),
+      datasets:[
+        {label:'Total acidentes',data:hc,backgroundColor:'#388bfd55',borderColor:'#388bfd',borderWidth:1},
+        {label:'Vítimas fatais',data:hf,backgroundColor:'#f8514988',borderColor:'#f85149',borderWidth:1}
+      ]
+    },
+    options:{plugins:{legend:{labels:{color:'#8b949e',font:{size:11},boxWidth:12}}},responsive:true,maintainAspectRatio:false,scales}
+  });
+
+  // Por período
+  dc('chartPeriodo');
+  const pm={MANHA:0,TARDE:0,NOITE:0,MADRUGADA:0};
+  d.forEach(r=>{if(pm[r.Periodo]!==undefined)pm[r.Periodo]++;});
+  charts['chartPeriodo']=new Chart(document.getElementById('chartPeriodo'),{
+    type:'doughnut',
+    data:{labels:['Manhã','Tarde','Noite','Madrugada'],datasets:[{data:[pm.MANHA,pm.TARDE,pm.NOITE,pm.MADRUGADA],backgroundColor:['#388bfd','#f0a830','#4a5568','#a78bfa'],borderWidth:0}]},
+    options:{plugins:{legend:{position:'right',labels:{color:'#8b949e',font:{size:12},boxWidth:12}}},responsive:true,maintainAspectRatio:false}
+  });
+
+  // Por dia da semana
+  dc('chartDiaSemana');
+  const dc2=Array(7).fill(0);
+  d.forEach(r=>{if(r.DiaSemana!==null)dc2[r.DiaSemana]++;});
+  const maxDia=Math.max(...dc2);
+  charts['chartDiaSemana']=new Chart(document.getElementById('chartDiaSemana'),{
+    type:'bar',
+    data:{labels:['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'],datasets:[{data:dc2,backgroundColor:dc2.map(v=>v===maxDia?'#f0a830':'#388bfd55'),borderColor:dc2.map(v=>v===maxDia?'#f0a830':'#388bfd'),borderWidth:1}]},
+    options:{plugins:{legend:{display:false}},responsive:true,maintainAspectRatio:false,scales}
+  });
+
+  // Recomendações
+  const faixas=[
+    {label:'19h – 23h',horas:[19,20,21,22,23],sub:'Noturno'},
+    {label:'00h – 05h',horas:[0,1,2,3,4,5],sub:'Madrugada'},
+    {label:'12h – 18h',horas:[12,13,14,15,16,17,18],sub:'Vespertino/tarde'},
+    {label:'06h – 11h',horas:[6,7,8,9,10,11],sub:'Matutino'},
+  ];
+  const fCalc=faixas.map(f=>{
+    const recs=d.filter(r=>f.horas.includes(r.HoraNum));
+    const fatais=recs.reduce((s,r)=>s+r.Fatais,0);
+    const total=recs.length;
+    const rm={};recs.filter(r=>r.TEM_FATAL).forEach(r=>{rm[r.Rod]=(rm[r.Rod]||0)+1;});
+    const rodTop=Object.entries(rm).sort((a,b)=>b[1]-a[1])[0]?.[0]?.split('·')[1]?.trim()||'—';
+    return{...f,total,fatais,rodTop};
+  }).sort((a,b)=>b.fatais-a.fatais||b.total-a.total);
+  const rcls=['','r2','r3','r4'];
+  document.getElementById('recGrid').innerHTML=fCalc.map((f,i)=>`
+    <div class="rec ${rcls[i]}">
+      <div class="rec-pri">${i+1}ª prioridade · patrulhamento</div>
+      <div class="rec-hora">${f.label}</div>
+      <div class="rec-sub">${f.sub} · ${f.fatais} óbitos · ${f.total} acidentes</div>
+      <div class="rec-desc">Faixa com ${i===0?'maior':'segundo maior'} concentração de acidentes fatais. Rodovia de maior risco: <strong>${f.rodTop}</strong>.</div>
+    </div>`).join('');
+}
+
+function renderTable(){
+  const d=[...filteredData].sort((a,b)=>b.DataSort.localeCompare(a.DataSort)).slice(0,500);
+  document.getElementById('tableCount').textContent=filteredData.length.toLocaleString('pt-BR');
+  const gBadge=r=>{
+    if(r.TEM_FATAL)return`<span class="bx bx-f">Fatal (${r.Fatais})</span>`;
+    if(r.TEM_GRAVE)return`<span class="bx bx-g">Grave (${r.Graves})</span>`;
+    if(r.TEM_LEVE)return`<span class="bx bx-l">Leve (${r.Leves})</span>`;
+    return`<span class="bx bx-s">Sem vítima</span>`;
+  };
+  const pBadge=p=>{
+    const cls={MANHA:'ma',TARDE:'ta',NOITE:'no',MADRUGADA:'md'}[p]||'no';
+    const lbl={MANHA:'Manhã',TARDE:'Tarde',NOITE:'Noite',MADRUGADA:'Madrugada'}[p]||p;
+    return`<span class="bx bx-${cls}">${lbl}</span>`;
+  };
+  document.getElementById('tableBody').innerHTML=d.map(r=>`
+    <tr>
+      <td>${r.Data}</td><td>${r.Hora}</td><td>${r.Cia}</td><td>${r.Pelotao}</td>
+      <td>${r.Rod.split('·')[1]?.trim()||r.Rod}</td>
+      <td style="text-align:right">${r.KM}</td><td>${r.Municipio}</td>
+      <td>${r.Tipo==='--'?'—':r.Tipo}</td><td>${gBadge(r)}</td><td>${pBadge(r.Periodo)}</td>
+    </tr>`).join('');
+}
+</script>
+</body>
+</html>
