@@ -652,29 +652,33 @@ function _startCountdown() {
 
 // Converte row da API para o formato interno do dashboard
 function _apiRowToDBRow(r) {
-  // r = [Data, Hora, Cia, Pelotao, Malha, KM, Municipio, Rodovia, Tipo, Tempo, F, G, L, Embriagados, Presos, LAT, LON]
-  const ds = _parseDateBR(r[0]);
+  // API v3: [ds, hora, cia, pel, malha, km, mun, rod, tipo, F, G, L, ebr, presos, lat, lon]
+  const ds = _parseDateBR(String(r[0] || ''));
   if (!ds || ds.length < 10) return null;
 
   const horaStr = String(r[1] || '');
-  const ciaStr  = String(r[2] || '');
-  const pelStr  = String(r[3] || '');
-  const rodStr  = String(r[7] || '');
-  const munStr  = String(r[6] || '');
-  const tipoStr = String(r[8] || '');
-  const F = parseInt(r[10]) || 0;
-  const G = parseInt(r[11]) || 0;
-  const L = parseInt(r[12]) || 0;
-  const lat = r[15] ? parseFloat(r[15]) : null;
-  const lon = r[16] ? parseFloat(r[16]) : null;
+  const ciaStr  = String(r[2] || '').trim();   // ex: "3ª CIA"
+  const pelStr  = String(r[3] || '').trim();   // ex: "1 Pelotão"
+  const rodStr  = String(r[7] || '').trim();
+  const munStr  = String(r[6] || '').trim();
+  const tipoStr = String(r[8] || '').trim();
+  const F = parseInt(r[9])  || 0;
+  const G = parseInt(r[10]) || 0;
+  const L = parseInt(r[11]) || 0;
+  const lat = r[14] ? parseFloat(String(r[14]).replace(',','.')) : null;
+  const lon = r[15] ? parseFloat(String(r[15]).replace(',','.')) : null;
 
-  // CIA index
-  let ciI = STATIC_META.cias.findIndex(c => ciaStr === c || ciaStr.includes(c.replace('ª','')));
+  // CIA: match exato ex "3ª CIA" → índice 2
+  let ciI = STATIC_META.cias.indexOf(ciaStr);
+  if (ciI < 0) {
+    const n = (ciaStr.match(/\d+/) || [''])[0];
+    ciI = n ? STATIC_META.cias.findIndex(c => c.startsWith(n+'ª') || c.startsWith(n+'a')) : -1;
+  }
   if (ciI < 0) ciI = 0;
 
-  // Pelotão index
-  let pelI = STATIC_META.pels.indexOf(pelStr.trim());
-  if (pelI < 0) { pelI = STATIC_META.pels.length; STATIC_META.pels.push(pelStr.trim() || 'Não informado'); }
+  // Pelotão: match exato ex "1 Pelotão"
+  let pelI = STATIC_META.pels.indexOf(pelStr);
+  if (pelI < 0) { pelI = STATIC_META.pels.length; STATIC_META.pels.push(pelStr || 'Não informado'); }
 
   return [
     r[0], ds, horaStr,
@@ -682,7 +686,7 @@ function _apiRowToDBRow(r) {
     _getDOW(ds),
     ds.substring(0,4),
     ciI, pelI,
-    0, // malI
+    0,
     _getOrAdd(STATIC_META.rods, rodStr || 'Não informada'),
     String(r[5] || '').trim(),
     _getOrAdd(STATIC_META.muns, munStr || 'Não informado'),
@@ -692,6 +696,7 @@ function _apiRowToDBRow(r) {
     lat, lon
   ];
 }
+
 
 async function loadFromDrive(silent = false) {
   // Verificar se a URL do script foi configurada
@@ -709,7 +714,7 @@ async function loadFromDrive(silent = false) {
   if (!silent) _showLoadingOverlay('Conectando ao Google Drive...<br><small>Carregando todos os anos de dados...</small>');
   try {
     const url = APPS_SCRIPT_URL + (APPS_SCRIPT_URL.includes('?') ? '&' : '?') + 'ano=todos&_t=' + Date.now();
-    const res = await fetch(url);
+    const res = await fetch(url, {signal: AbortSignal.timeout(120000)});
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
     const json = await res.json();
@@ -734,6 +739,15 @@ async function loadFromDrive(silent = false) {
     window.malhas = window.DB.malhas;
     lastUpdate = new Date();
     if (!silent) _hideLoadingOverlay();
+    // Debug: mostrar amostra dos dados recebidos
+    if (window.DB.rows.length > 0) {
+      const sample = window.DB.rows.slice(0,3);
+      console.log('✅ DB.rows amostra:', JSON.stringify(sample));
+      console.log('✅ cias:', window.cias);
+      console.log('✅ Total F>0:', window.DB.rows.filter(r=>r[14]>0).length);
+      console.log('✅ Total G>0:', window.DB.rows.filter(r=>r[15]>0).length);
+      console.log('✅ Total L>0:', window.DB.rows.filter(r=>r[16]>0).length);
+    }
     init();
 
     const ts = lastUpdate.toLocaleString('pt-BR');
@@ -762,6 +776,8 @@ const I={DA:0,DS:1,HR:2,HN:3,DW:4,AN:5,CI:6,PE:7,ML:8,RO:9,KM:10,MU:11,PR:12,TI:
 let allData=[], filteredData=[], charts={};
 
 function init(){
+  console.log('🔵 init() chamado — DB.rows:', DB.rows.length, '| cias:', JSON.stringify(cias), '| pels:', JSON.stringify(pels.slice(0,5)));
+  if(DB.rows.length>0) console.log('🔵 amostra row[0]:', JSON.stringify(DB.rows[0]));
   allData=DB.rows.map(r=>({
     Data:r[I.DA],DS:r[I.DS],Hora:r[I.HR],HN:r[I.HN]||0,DOW:r[I.DW],Ano:r[I.AN],
     Cia:cias[r[I.CI]],Pel:pels[r[I.PE]],Malha:malhas[r[I.ML]],Rod:rods[r[I.RO]],
@@ -770,6 +786,7 @@ function init(){
     Lat:r[I.LA]||null,Lon:r[I.LO]||null,
     TF:(r[I.F]||0)>0,TG:(r[I.G]||0)>0,TL:(r[I.L]||0)>0
   }));
+  console.log('🔵 allData após map:', allData.length, '| ex:', allData[0] ? JSON.stringify({Cia:allData[0].Cia,DS:allData[0].DS,F:allData[0].F,G:allData[0].G,L:allData[0].L}) : 'vazio');
   populateFilters();
   filteredData=[...allData];
   const dates=allData.map(r=>r.DS).filter(Boolean).sort();
