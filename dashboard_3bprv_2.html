@@ -579,8 +579,7 @@ const STATIC_META = {
   malhas: ["Não informada"]
 };
 
-// DB placeholder
-let DB = { ...STATIC_META, rows: [] };
+// DB é sempre referenciado como window.DB (não declarar let DB local)
 
 function _parseDateBR(s) {
   if (!s) return '';
@@ -680,13 +679,15 @@ function _apiRowToDBRow(r) {
   let pelI = STATIC_META.pels.indexOf(pelStr);
   if (pelI < 0) { pelI = STATIC_META.pels.length; STATIC_META.pels.push(pelStr || 'Não informado'); }
 
+  const malhaStr = String(r[4] || '').trim();  // ex: "000/310"
+
   return [
     r[0], ds, horaStr,
     parseInt((horaStr+':').split(':')[0]) || 0,
     _getDOW(ds),
     ds.substring(0,4),
     ciI, pelI,
-    0,
+    _getOrAdd(STATIC_META.malhas, malhaStr || 'Não informada'),  // malI
     _getOrAdd(STATIC_META.rods, rodStr || 'Não informada'),
     String(r[5] || '').trim(),
     _getOrAdd(STATIC_META.muns, munStr || 'Não informado'),
@@ -776,6 +777,7 @@ const I={DA:0,DS:1,HR:2,HN:3,DW:4,AN:5,CI:6,PE:7,ML:8,RO:9,KM:10,MU:11,PR:12,TI:
 let allData=[], filteredData=[], charts={};
 
 function init(){
+  if(typeof DB === 'undefined' || !DB.rows || DB.rows.length === 0) DB = window.DB;
   console.log('🔵 init() chamado — DB.rows:', DB.rows.length, '| cias:', JSON.stringify(cias), '| pels:', JSON.stringify(pels.slice(0,5)));
   if(DB.rows.length>0) console.log('🔵 amostra row[0]:', JSON.stringify(DB.rows[0]));
   allData=DB.rows.map(r=>({
@@ -788,8 +790,17 @@ function init(){
   }));
   console.log('🔵 allData após map:', allData.length, '| ex:', allData[0] ? JSON.stringify({Cia:allData[0].Cia,DS:allData[0].DS,F:allData[0].F,G:allData[0].G,L:allData[0].L}) : 'vazio');
   populateFilters();
-  filteredData=[...allData];
-  const dates=allData.map(r=>r.DS).filter(Boolean).sort();
+  // Ao carregar, filtrar pelo ano atual automaticamente
+  const _anoAtual = String(new Date().getFullYear());
+  const _selAno = document.getElementById('fAno');
+  if (_selAno) {
+    // Verifica se o ano atual existe nas opções
+    const _opts = Array.from(_selAno.options).map(o => o.value);
+    if (_opts.includes(_anoAtual)) _selAno.value = _anoAtual;
+  }
+  filteredData = allData.filter(r => r.Ano === _anoAtual);
+  if (filteredData.length === 0) filteredData = [...allData]; // fallback se ano não existir
+  const dates = filteredData.map(r=>r.DS).filter(Boolean).sort();
   if(dates.length){document.getElementById('fDataIn').value=dates[0];document.getElementById('fDataFim').value=dates[dates.length-1];}
   renderAll();
 }
