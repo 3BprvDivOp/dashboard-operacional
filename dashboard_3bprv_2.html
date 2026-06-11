@@ -700,10 +700,9 @@ function _apiRowToDBRow(r) {
 
 
 async function loadFromDrive(silent = false) {
-  // Verificar se a URL do script foi configurada
   if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.trim() === '') {
     _hideLoadingOverlay();
-    _updateStatusBar('⚠ Configure a URL do Apps Script no arquivo HTML — veja o arquivo BOPM_API_Script.gs', false);
+    _updateStatusBar('⚠ URL do Apps Script não configurada', false);
     window.DB = { ...STATIC_META, rows: [] };
     window.cias=window.DB.cias; window.pels=window.DB.pels; window.rods=window.DB.rods;
     window.muns=window.DB.muns; window.tipos=window.DB.tipos; window.pers=window.DB.pers;
@@ -712,25 +711,34 @@ async function loadFromDrive(silent = false) {
     return;
   }
 
-  if (!silent) _showLoadingOverlay('Conectando ao Google Drive...<br><small>Carregando todos os anos de dados...</small>');
+  if (!silent) _showLoadingOverlay('Conectando ao Google Drive...<br><small>Buscando dados dos 3 anos em paralelo...</small>');
+
   try {
-    const url = APPS_SCRIPT_URL + (APPS_SCRIPT_URL.includes('?') ? '&' : '?') + 'ano=todos&_t=' + Date.now();
-    const res = await fetch(url, {signal: AbortSignal.timeout(120000)});
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    // Buscar os 3 anos em PARALELO (muito mais rápido que sequencial)
+    const anos = ['2024', '2025', '2026'];
+    const promises = anos.map(ano => {
+      const url = APPS_SCRIPT_URL + '?ano=' + ano + '&_t=' + Date.now();
+      return fetch(url)
+        .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+        .then(json => { if (!json.ok) throw new Error(json.error || 'Erro na API'); return json.rows || []; })
+        .catch(err => { console.warn('Falha ao carregar ' + ano + ':', err.message); return []; });
+    });
 
-    const json = await res.json();
-    if (!json.ok) throw new Error(json.error || 'Erro na API');
+    if (!silent) _showLoadingOverlay('Carregando dados...<br><small>Aguarde, processando 2024 · 2025 · 2026</small>');
 
+    const results = await Promise.all(promises);
+    const rawRows = results.flat();
+
+    if (rawRows.length === 0) throw new Error('Nenhum dado obtido das planilhas');
+
+    // Converter para formato interno
     const allRows = [];
-    for (const r of json.rows) {
+    for (const r of rawRows) {
       const dbRow = _apiRowToDBRow(r);
       if (dbRow) allRows.push(dbRow);
     }
 
-    if (allRows.length === 0) throw new Error('API retornou 0 registros');
-
     window.DB = { ...STATIC_META, rows: allRows };
-    // Expor arrays de lookup como variáveis globais (init() as usa diretamente)
     window.cias   = window.DB.cias;
     window.pels   = window.DB.pels;
     window.rods   = window.DB.rods;
@@ -738,10 +746,9 @@ async function loadFromDrive(silent = false) {
     window.tipos  = window.DB.tipos;
     window.pers   = window.DB.pers;
     window.malhas = window.DB.malhas;
-    lastUpdate = new Date();
-    if (!silent) _hideLoadingOverlay();
-    // Debug: mostrar amostra dos dados recebidos
-    if (window.DB.rows.length > 0) {
+
+    // Debug
+    if (allRows.length > 0) {
       const sample = window.DB.rows.slice(0,3);
       console.log('✅ DB.rows amostra:', JSON.stringify(sample));
       console.log('✅ cias:', window.cias);
@@ -749,28 +756,33 @@ async function loadFromDrive(silent = false) {
       console.log('✅ Total G>0:', window.DB.rows.filter(r=>r[15]>0).length);
       console.log('✅ Total L>0:', window.DB.rows.filter(r=>r[16]>0).length);
     }
+
+    lastUpdate = new Date();
+    if (!silent) _hideLoadingOverlay();
     init();
 
     const ts = lastUpdate.toLocaleString('pt-BR');
-    _updateStatusBar(`Atualizado em ${ts} · ${allRows.length.toLocaleString()} registros`, true);
+    _updateStatusBar('Atualizado em ' + ts + ' · ' + allRows.length.toLocaleString() + ' registros', true);
     _startCountdown();
 
   } catch(err) {
     console.error('loadFromDrive error:', err);
     _hideLoadingOverlay();
     if (window.DB && window.DB.rows && window.DB.rows.length > 0) {
-      _updateStatusBar(`⚠ Falha na atualização: ${err.message} · Mantendo dados anteriores`, true);
+      _updateStatusBar('⚠ Falha na atualização: ' + err.message + ' · Mantendo dados anteriores', true);
     } else {
       window.DB = { ...STATIC_META, rows: [] };
       window.cias=window.DB.cias; window.pels=window.DB.pels; window.rods=window.DB.rods;
       window.muns=window.DB.muns; window.tipos=window.DB.tipos; window.pers=window.DB.pers;
       window.malhas=window.DB.malhas;
       init();
-      _updateStatusBar(`❌ Erro: ${err.message}`, false);
+      _updateStatusBar('❌ Erro: ' + err.message, false);
     }
     _startCountdown();
   }
 }
+
+
 
 const I={DA:0,DS:1,HR:2,HN:3,DW:4,AN:5,CI:6,PE:7,ML:8,RO:9,KM:10,MU:11,PR:12,TI:13,F:14,G:15,L:16,LA:17,LO:18};
 
