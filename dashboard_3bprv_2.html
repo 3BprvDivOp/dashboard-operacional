@@ -43,15 +43,15 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 .cs{font-size:15px;font-weight:700;margin-bottom:14px}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
 .g3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px}
-.g12{display:grid;grid-template-columns:1fr 2fr;gap:14px;margin-bottom:14px}
+.g12{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
 .cw{position:relative;height:230px}.cwl{position:relative;height:280px}.cwxl{position:relative;height:320px}
 .rank-list{display:flex;flex-direction:column;gap:9px}
 .ri{display:flex;align-items:center;gap:8px}
 .rn{color:var(--muted);font-size:11px;width:16px;text-align:right;flex-shrink:0}
 .rnm{font-size:12px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.rbw{width:70px;height:5px;background:var(--border);border-radius:3px;flex-shrink:0}
+.rbw{width:35px;height:5px;background:var(--border);border-radius:3px;flex-shrink:0}
 .rb{height:100%;border-radius:3px;background:var(--gold)}
-.rc{font-size:13px;font-weight:700;width:28px;text-align:right;flex-shrink:0}
+.rc{font-size:13px;font-weight:700;width:44px;text-align:right;flex-shrink:0}
 .rf{font-size:11px;color:var(--fatal);width:40px;text-align:right;flex-shrink:0}
 .cc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
 .cc{background:var(--card);border-radius:12px;padding:18px;border:1px solid var(--border);border-top:3px solid var(--fatal)}
@@ -1139,11 +1139,16 @@ function renderTrechos(){
     <div class="rbw"><div class="rb" style="width:${v.t/mmax*100}%"></div></div>
     <div class="rc">${v.t}</div><div class="rf">${v.f>0?v.f+' fat':''}</div></div>`).join('');
 
-  const rodm={};d.forEach(r=>{if(r.Rod==='Não informada')return;if(!rodm[r.Rod])rodm[r.Rod]={t:0,f:0,g:0};rodm[r.Rod].t++;rodm[r.Rod].f+=r.F;rodm[r.Rod].g+=r.G;});
+  const rodm={};d.forEach(r=>{
+    if(!r.Malha||r.Malha==='Não informada')return;
+    const rodKey = r.Malha + (r.Rod&&r.Rod!=='Não informada' ? ' - '+r.Rod : '');
+    if(!rodm[rodKey])rodm[rodKey]={t:0,f:0,g:0};
+    rodm[rodKey].t++;rodm[rodKey].f+=r.F;rodm[rodKey].g+=r.G;
+  });
   const rods2=Object.entries(rodm).sort((a,b)=>b[1].t-a[1].t).slice(0,10);
   const rmax=rods2[0]?.[1]?.t||1;
   document.getElementById('rankRodovia').innerHTML=rods2.map(([k,v],i)=>`
-    <div class="ri"><div class="rn">${i+1}</div><div class="rnm" title="${k}">${k.split('·')[1]?.trim()||k}</div>
+    <div class="ri"><div class="rn">${i+1}</div><div class="rnm" title="${k}">${k}</div>
     <div class="rbw"><div class="rb" style="width:${v.t/rmax*100}%"></div></div>
     <div class="rc">${v.t}</div><div class="rf">${v.f>0?v.f+' fat':''}</div></div>`).join('');
 
@@ -1151,7 +1156,8 @@ function renderTrechos(){
   const pris=['','p2','p3','p4','p4','p4'];
   const ptags=['⚠ PRIORIDADE MÁXIMA','PRIORIDADE ALTA','PRIORIDADE ALTA','ATENÇÃO','ATENÇÃO','ATENÇÃO'];
   document.getElementById('criticalCards').innerHTML=topF.map(([k,v],i)=>{
-    const recs=d.filter(r=>r.Rod===k);
+    const rodKeyOf=r=>r.Malha&&r.Malha!=='Não informada'?r.Malha+(r.Rod&&r.Rod!=='Não informada'?' - '+r.Rod:''):r.Rod;
+    const recs=d.filter(r=>rodKeyOf(r)===k);
     const tt={};recs.filter(r=>r.TF||r.TG).forEach(r=>{tt[r.Tipo]=(tt[r.Tipo]||0)+1;});
     const tipoTop=Object.entries(tt).sort((a,b)=>b[1]-a[1])[0]?.[0]||'--';
     const pt={};recs.filter(r=>r.TF).forEach(r=>{pt[r.Per]=(pt[r.Per]||0)+1;});
