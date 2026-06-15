@@ -1139,9 +1139,17 @@ function renderTrechos(){
     <div class="rbw"><div class="rb" style="width:${v.t/mmax*100}%"></div></div>
     <div class="rc">${v.t}</div><div class="rf">${v.f>0?v.f+' fat':''}</div></div>`).join('');
 
+  // Normaliza nome de rodovia: remove acentos, Title Case
+  const _normRod = s => {
+    if (!s) return '';
+    return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+      .toLowerCase()
+      .replace(/\b\w/g, c => c.toUpperCase())
+      .trim();
+  };
   const rodm={};d.forEach(r=>{
     if(!r.Malha||r.Malha==='Não informada')return;
-    const rodKey = r.Malha + (r.Rod&&r.Rod!=='Não informada' ? ' - '+r.Rod : '');
+    const rodKey = r.Malha + (r.Rod&&r.Rod!=='Não informada' ? ' - '+_normRod(r.Rod) : '');
     if(!rodm[rodKey])rodm[rodKey]={t:0,f:0,g:0};
     rodm[rodKey].t++;rodm[rodKey].f+=r.F;rodm[rodKey].g+=r.G;
   });
@@ -1156,7 +1164,7 @@ function renderTrechos(){
   const pris=['','p2','p3','p4','p4','p4'];
   const ptags=['⚠ PRIORIDADE MÁXIMA','PRIORIDADE ALTA','PRIORIDADE ALTA','ATENÇÃO','ATENÇÃO','ATENÇÃO'];
   document.getElementById('criticalCards').innerHTML=topF.map(([k,v],i)=>{
-    const rodKeyOf=r=>r.Malha&&r.Malha!=='Não informada'?r.Malha+(r.Rod&&r.Rod!=='Não informada'?' - '+r.Rod:''):r.Rod;
+    const rodKeyOf=r=>r.Malha&&r.Malha!=='Não informada'?r.Malha+(r.Rod&&r.Rod!=='Não informada'?' - '+_normRod(r.Rod):''):r.Rod;
     const recs=d.filter(r=>rodKeyOf(r)===k);
     const tt={};recs.filter(r=>r.TF||r.TG).forEach(r=>{tt[r.Tipo]=(tt[r.Tipo]||0)+1;});
     const tipoTop=Object.entries(tt).sort((a,b)=>b[1]-a[1])[0]?.[0]||'--';
