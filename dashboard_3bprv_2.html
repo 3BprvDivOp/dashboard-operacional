@@ -293,6 +293,43 @@ tr:hover td{background:var(--surface)}
 .dl-section-h.fisc{color:#2ecc71}
 .dl-section-line.fisc{background:linear-gradient(90deg,rgba(46,204,113,.3),transparent)}
 
+
+/* ===== RDA — Menu lateral + Cards de Acompanhamento ===== */
+.rda-layout{display:flex;gap:16px;align-items:flex-start}
+.rda-sidebar{width:200px;flex-shrink:0;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:6px;position:sticky;top:70px}
+.rda-side-btn{padding:12px 14px;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;text-align:left;transition:all .15s;letter-spacing:.3px}
+.rda-side-btn:hover{border-color:var(--gold);color:var(--text)}
+.rda-side-btn.active{background:linear-gradient(135deg,var(--gold),#c9860a);color:#1a1200;border-color:var(--gold)}
+.rda-content{flex:1;min-width:0}
+.rda-ref-bar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 16px;margin-bottom:14px}
+.rda-ref-bar select{background:var(--card);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 10px;font-size:12px}
+.rda-ref-info{font-size:11px;color:var(--muted)}
+.rda-ref-info b{color:var(--text)}
+.rda-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.rda-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px}
+.rda-card.bprv{grid-column:1 / -1;border-color:var(--gold);background:linear-gradient(180deg,rgba(240,168,48,.06),var(--surface))}
+.rda-card-title{font-size:11px;font-weight:700;color:var(--gold);letter-spacing:.5px;margin-bottom:8px;text-transform:uppercase;display:flex;align-items:center;gap:6px}
+.rda-card.bprv .rda-card-title{font-size:13px}
+.rda-tbl{width:100%;border-collapse:collapse;font-size:11px}
+.rda-tbl th{text-align:left;color:var(--muted);font-weight:600;padding:5px 6px;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase}
+.rda-tbl th.num{text-align:right}
+.rda-tbl td{padding:5px 6px;border-bottom:1px solid rgba(48,54,61,.5)}
+.rda-tbl td.num{text-align:right;font-variant-numeric:tabular-nums}
+.rda-tbl tr:last-child td{border-bottom:none}
+.rda-pct{font-weight:700}
+.rda-pct.up{color:var(--safe)}
+.rda-pct.down{color:var(--fatal)}
+.rda-arrow{display:inline-block;width:18px;height:18px;border-radius:4px;text-align:center;line-height:18px;font-size:10px;font-weight:900}
+.rda-arrow.up{background:var(--safe);color:#04240f}
+.rda-arrow.down{background:var(--fatal);color:#2a0605}
+.rda-arrow.eq{background:var(--border);color:var(--muted)}
+.rda-loading{text-align:center;padding:60px 20px;color:var(--muted);font-size:13px}
+@media (max-width:900px){
+  .rda-layout{flex-direction:column}
+  .rda-sidebar{width:100%;flex-direction:row;flex-wrap:wrap;position:static}
+  .rda-grid{grid-template-columns:1fr}
+}
+
 </style>
 </head>
 <body>
@@ -468,6 +505,44 @@ tr:hover td{background:var(--surface)}
 <div class="tc" id="tab-daily">
 <div style="padding:16px 0 8px">
 
+<div class="rda-layout">
+  <div class="rda-sidebar" id="rdaSidebar">
+    <div class="rda-side-btn active" data-view="periodo" onclick="rdaSelectView('periodo')">📊 Comparativo Período</div>
+    <div class="rda-side-btn" data-view="sinistro" onclick="rdaSelectView('sinistro')">🚨 Sinistro de Trânsito</div>
+    <div class="rda-side-btn" data-view="fisc_transito" onclick="rdaSelectView('fisc_transito')">🚓 Fisc. Trânsito</div>
+    <div class="rda-side-btn" data-view="criminal" onclick="rdaSelectView('criminal')">🔫 Criminal</div>
+    <div class="rda-side-btn" data-view="canavieiro" onclick="rdaSelectView('canavieiro')">🌾 Canavieiro</div>
+    <div class="rda-side-btn" data-view="pp" onclick="rdaSelectView('pp')">☣️ PP</div>
+  </div>
+
+  <div class="rda-content">
+
+  <!-- ===== VIEW: RDA por categoria (Sinistro/Fisc/Criminal/Canavieiro/PP) ===== -->
+  <div id="rdaViewCategoria" style="display:none">
+    <div class="rda-ref-bar">
+      <div>
+        <div style="font-size:9px;color:var(--muted);text-transform:uppercase;margin-bottom:4px">Referência</div>
+        <select id="rdaRefSelect" onchange="rdaRenderCategoria()">
+          <option value="ANUAL">Anual</option>
+          <option value="SEM1">1º Semestre</option>
+          <option value="SEM2">2º Semestre</option>
+          <option value="TRI1">1º Trimestre</option>
+          <option value="TRI2">2º Trimestre</option>
+          <option value="TRI3">3º Trimestre</option>
+          <option value="TRI4">4º Trimestre</option>
+          <option value="QUAD1">1º Quadrimestre</option>
+          <option value="QUAD2">2º Quadrimestre</option>
+          <option value="QUAD3">3º Quadrimestre</option>
+        </select>
+      </div>
+      <div class="rda-ref-info" id="rdaRefInfo">Carregando...</div>
+      <div class="rda-ref-info" id="rdaAtualizadoInfo" style="margin-left:auto"></div>
+    </div>
+    <div id="rdaCardsWrap" class="rda-loading">Carregando dados do RDA...</div>
+  </div>
+
+  <!-- ===== VIEW: Comparativo por Período (conteúdo original) ===== -->
+  <div id="rdaViewPeriodo">
   <div class="dl-wrap">
   <!-- CONTROLES -->
   <div class="dl-ctrl-bar">
@@ -550,6 +625,14 @@ tr:hover td{background:var(--surface)}
   <div id="dlFiscCards" class="dl-cia-grid"></div>
   <div class="dl-det-wrap"><table id="dlFiscTbl" class="dl-det-tbl"></table></div>
   </div>
+
+  </div>
+  <!-- fecha rdaViewPeriodo -->
+
+  </div>
+  <!-- fecha rda-content -->
+</div>
+<!-- fecha rda-layout -->
 
 </div>
 </div>
@@ -1739,6 +1822,120 @@ function dlDaysBetween(iniStr, fimStr){
 function dlProject(val){
   if(DL_DIAS_FEITOS<=0) return val;
   return Math.round(val/DL_DIAS_FEITOS*DL_DIAS_TOTAIS);
+}
+
+
+// ============================================================
+// RDA — Acompanhamento por categoria (Sinistro/Fisc/Criminal/Canavieiro/PP)
+// ============================================================
+let RDA_DATA = null;
+let RDA_CURRENT_VIEW = 'periodo';
+let RDA_FETCH_PROMISE = null;
+
+const RDA_CATEGORIA_LABELS = {
+  sinistro: 'SINISTROS DE TRANS.',
+  fisc_transito: 'AUTUAÇÕES',
+  criminal: 'POLICIAMENTO',
+  canavieiro: 'CANAVIEIRO',
+  pp: 'PRODUTO PERIGOSO'
+};
+
+function rdaSelectView(view){
+  RDA_CURRENT_VIEW = view;
+  document.querySelectorAll('.rda-side-btn').forEach(b=>b.classList.toggle('active', b.dataset.view===view));
+
+  const viewPeriodo = document.getElementById('rdaViewPeriodo');
+  const viewCategoria = document.getElementById('rdaViewCategoria');
+
+  if(view==='periodo'){
+    viewPeriodo.style.display='';
+    viewCategoria.style.display='none';
+  } else {
+    viewPeriodo.style.display='none';
+    viewCategoria.style.display='';
+    rdaEnsureData().then(()=>rdaRenderCategoria());
+  }
+}
+
+function rdaEnsureData(){
+  if(RDA_DATA) return Promise.resolve(RDA_DATA);
+  if(RDA_FETCH_PROMISE) return RDA_FETCH_PROMISE;
+
+  const wrap = document.getElementById('rdaCardsWrap');
+  wrap.innerHTML = '<div class="rda-loading">Carregando dados do RDA...</div>';
+
+  const url = APPS_SCRIPT_URL + '?fonte=rda&_t=' + Date.now();
+  RDA_FETCH_PROMISE = fetch(url)
+    .then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+    .then(json=>{
+      if(!json.ok) throw new Error(json.error||'Erro na API RDA');
+      RDA_DATA = json;
+      return json;
+    })
+    .catch(err=>{
+      wrap.innerHTML = '<div class="rda-loading" style="color:var(--fatal)">❌ Erro ao carregar RDA: '+err.message+'</div>';
+      RDA_FETCH_PROMISE = null;
+      throw err;
+    });
+  return RDA_FETCH_PROMISE;
+}
+
+function rdaFmtNum(n){
+  if(n===null||n===undefined) return '--';
+  return Math.round(n).toLocaleString('pt-BR');
+}
+
+function rdaFmtPct(p){
+  if(p===null||p===undefined) return '--';
+  const s = p>0?'+':'';
+  return s + p.toFixed(2).replace('.',',') + '%';
+}
+
+function rdaRenderCategoria(){
+  if(!RDA_DATA) return;
+  const cat = RDA_CURRENT_VIEW;
+  if(!RDA_CATEGORIA_LABELS[cat]) return;
+
+  const refKey = document.getElementById('rdaRefSelect').value;
+  const ref = RDA_DATA.referencias[refKey];
+  if(!ref){ document.getElementById('rdaCardsWrap').innerHTML='<div class="rda-loading">Referência indisponível</div>'; return; }
+
+  document.getElementById('rdaRefInfo').innerHTML =
+    'Período: <b>'+ref.inicio+'</b> a <b>'+ref.fim+'</b> &nbsp;·&nbsp; Dias decorridos: <b>'+ref.diasDecorridos+'</b> de <b>'+ref.diasTotais+'</b>';
+  document.getElementById('rdaAtualizadoInfo').textContent =
+    RDA_DATA.atualizadoEm ? ('Atualizado em: '+new Date(RDA_DATA.atualizadoEm).toLocaleString('pt-BR')) : '';
+
+  const catData = ref.categorias[cat];
+  if(!catData){ document.getElementById('rdaCardsWrap').innerHTML='<div class="rda-loading">Sem dados</div>'; return; }
+
+  function buildTable(alvoKey, cardTitle){
+    let html = '<table class="rda-tbl"><thead><tr><th>Indicador</th><th class="num">2025</th><th class="num">2026</th><th class="num">%</th><th class="num">Tend.</th><th></th></tr></thead><tbody>';
+    catData.linhas.forEach(linha=>{
+      const d = linha[alvoKey];
+      const arrowClass = d.seta==='up'?'up':(d.seta==='down'?'down':'eq');
+      const arrowSym = d.seta==='up'?'▲':(d.seta==='down'?'▼':'●');
+      html += '<tr>'+
+        '<td>'+linha.label+'</td>'+
+        '<td class="num">'+rdaFmtNum(d.v2025)+'</td>'+
+        '<td class="num"><b>'+rdaFmtNum(d.v2026)+'</b></td>'+
+        '<td class="num rda-pct '+arrowClass+'">'+rdaFmtPct(d.pct)+'</td>'+
+        '<td class="num">'+rdaFmtNum(d.tendencia)+'</td>'+
+        '<td class="num"><span class="rda-arrow '+arrowClass+'">'+arrowSym+'</span></td>'+
+      '</tr>';
+    });
+    html += '</tbody></table>';
+    return '<div class="rda-card'+(alvoKey==='bprv'?' bprv':'')+'"><div class="rda-card-title">'+cardTitle+'</div>'+html+'</div>';
+  }
+
+  let out = '<div class="rda-grid">';
+  out += buildTable('bprv', '3º BPRv — Total');
+  out += buildTable('c1', '1ª CIA');
+  out += buildTable('c2', '2ª CIA');
+  out += buildTable('c3', '3ª CIA');
+  out += buildTable('c4', '4ª CIA');
+  out += '</div>';
+
+  document.getElementById('rdaCardsWrap').innerHTML = out;
 }
 
 function renderDaily(){
