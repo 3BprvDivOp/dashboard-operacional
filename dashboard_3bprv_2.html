@@ -372,7 +372,7 @@ tr:hover td{background:var(--surface)}
   <div class="tab" onclick="showTab('temporal',this)">Análise Temporal</div>
   <div class="tab" onclick="showTab('tabela',this)">Registros</div>
     <div class="tab" onclick="showTab('mapa',this);initMap()">Mapa</div>
-    <div class="tab" onclick="showTab('daily',this);renderDaily()">Acomp. Diário</div>
+    <div class="tab" onclick="showTab('daily',this);rdaSelectView('sinistro')">Acomp. Diário</div>
 </div>
 
 <!-- GERAL -->
@@ -507,8 +507,7 @@ tr:hover td{background:var(--surface)}
 
 <div class="rda-layout">
   <div class="rda-sidebar" id="rdaSidebar">
-    <div class="rda-side-btn active" data-view="periodo" onclick="rdaSelectView('periodo')">📊 Comparativo Período</div>
-    <div class="rda-side-btn" data-view="sinistro" onclick="rdaSelectView('sinistro')">🚨 Sinistro de Trânsito</div>
+    <div class="rda-side-btn active" data-view="sinistro" onclick="rdaSelectView('sinistro')">🚨 Sinistro de Trânsito</div>
     <div class="rda-side-btn" data-view="fisc_transito" onclick="rdaSelectView('fisc_transito')">🚓 Fisc. Trânsito</div>
     <div class="rda-side-btn" data-view="criminal" onclick="rdaSelectView('criminal')">🔫 Criminal</div>
     <div class="rda-side-btn" data-view="canavieiro" onclick="rdaSelectView('canavieiro')">🌾 Canavieiro</div>
@@ -530,9 +529,24 @@ tr:hover td{background:var(--surface)}
           <option value="TRI2">2º Trimestre</option>
           <option value="TRI3">3º Trimestre</option>
           <option value="TRI4">4º Trimestre</option>
-          <option value="QUAD1">1º Quadrimestre</option>
-          <option value="QUAD2">2º Quadrimestre</option>
-          <option value="QUAD3">3º Quadrimestre</option>
+          <option value="BIM1">1º Bimestre</option>
+          <option value="BIM2">2º Bimestre</option>
+          <option value="BIM3">3º Bimestre</option>
+          <option value="BIM4">4º Bimestre</option>
+          <option value="BIM5">5º Bimestre</option>
+          <option value="BIM6">6º Bimestre</option>
+          <option value="MES1">Janeiro</option>
+          <option value="MES2">Fevereiro</option>
+          <option value="MES3">Março</option>
+          <option value="MES4">Abril</option>
+          <option value="MES5">Maio</option>
+          <option value="MES6">Junho</option>
+          <option value="MES7">Julho</option>
+          <option value="MES8">Agosto</option>
+          <option value="MES9">Setembro</option>
+          <option value="MES10">Outubro</option>
+          <option value="MES11">Novembro</option>
+          <option value="MES12">Dezembro</option>
         </select>
       </div>
       <div class="rda-ref-info" id="rdaRefInfo">Carregando...</div>
@@ -541,8 +555,8 @@ tr:hover td{background:var(--surface)}
     <div id="rdaCardsWrap" class="rda-loading">Carregando dados do RDA...</div>
   </div>
 
-  <!-- ===== VIEW: Comparativo por Período (conteúdo original) ===== -->
-  <div id="rdaViewPeriodo">
+  <!-- ===== VIEW: Comparativo por Período (conteúdo legado, não mais acessível pelo menu) ===== -->
+  <div id="rdaViewPeriodo" style="display:none">
   <div class="dl-wrap">
   <!-- CONTROLES -->
   <div class="dl-ctrl-bar">
@@ -1829,7 +1843,7 @@ function dlProject(val){
 // RDA — Acompanhamento por categoria (Sinistro/Fisc/Criminal/Canavieiro/PP)
 // ============================================================
 let RDA_DATA = null;
-let RDA_CURRENT_VIEW = 'periodo';
+let RDA_CURRENT_VIEW = 'sinistro';
 let RDA_FETCH_PROMISE = null;
 
 const RDA_CATEGORIA_LABELS = {
@@ -1844,17 +1858,9 @@ function rdaSelectView(view){
   RDA_CURRENT_VIEW = view;
   document.querySelectorAll('.rda-side-btn').forEach(b=>b.classList.toggle('active', b.dataset.view===view));
 
-  const viewPeriodo = document.getElementById('rdaViewPeriodo');
   const viewCategoria = document.getElementById('rdaViewCategoria');
-
-  if(view==='periodo'){
-    viewPeriodo.style.display='';
-    viewCategoria.style.display='none';
-  } else {
-    viewPeriodo.style.display='none';
-    viewCategoria.style.display='';
-    rdaEnsureData().then(()=>rdaRenderCategoria());
-  }
+  viewCategoria.style.display='';
+  rdaEnsureData().then(()=>rdaRenderCategoria());
 }
 
 function rdaEnsureData(){
@@ -1912,15 +1918,15 @@ function rdaRenderCategoria(){
     let html = '<table class="rda-tbl"><thead><tr><th>Indicador</th><th class="num">2025</th><th class="num">2026</th><th class="num">%</th><th class="num">Tend.</th><th></th></tr></thead><tbody>';
     catData.linhas.forEach(linha=>{
       const d = linha[alvoKey];
-      const arrowClass = d.seta==='up'?'up':(d.seta==='down'?'down':'eq');
+      const corClass = d.cor==='up'?'up':(d.cor==='down'?'down':'eq');
       const arrowSym = d.seta==='up'?'▲':(d.seta==='down'?'▼':'●');
       html += '<tr>'+
         '<td>'+linha.label+'</td>'+
         '<td class="num">'+rdaFmtNum(d.v2025)+'</td>'+
         '<td class="num"><b>'+rdaFmtNum(d.v2026)+'</b></td>'+
-        '<td class="num rda-pct '+arrowClass+'">'+rdaFmtPct(d.pct)+'</td>'+
+        '<td class="num rda-pct '+corClass+'">'+rdaFmtPct(d.pct)+'</td>'+
         '<td class="num">'+rdaFmtNum(d.tendencia)+'</td>'+
-        '<td class="num"><span class="rda-arrow '+arrowClass+'">'+arrowSym+'</span></td>'+
+        '<td class="num"><span class="rda-arrow '+corClass+'">'+arrowSym+'</span></td>'+
       '</tr>';
     });
     html += '</tbody></table>';
