@@ -1223,7 +1223,6 @@ function renderComparativo(){
   const mostrarProj=temProj&&anosDisp.indexOf(ANO_PROJ)>=0;
   const COR_PROJ='#a371f7'; // roxo: distingue projeção de dado realizado
 
-  // Rótulo com quebra de linha (Chart.js aceita array = várias linhas)
   const labelsAno=anosDisp.slice();
   if(mostrarProj)labelsAno.push([ANO_PROJ,'tendência']);
 
@@ -1233,15 +1232,15 @@ function renderComparativo(){
     return{
       data:mostrarProj?valores.concat([projetar(valores[anosDisp.indexOf(ANO_PROJ)])]):valores,
       backgroundColor:cores,borderColor:bordas,borderWidth:2,
-      // borda tracejada só na barra de projeção, para não parecer dado consolidado
       borderDash:mostrarProj?anosDisp.map(()=>[]).concat([[6,4]]):[]
     };
   }
 
-  const totais=anosDisp.map(a=>byAno[a]?.t||0);
   const dlAno={display:true,anchor:'center',align:'center',color:'#ffffff',
                font:{size:20,family:'Oswald',weight:'bold'},
                formatter:v=>v.toLocaleString('pt-BR')};
+
+  const totais=anosDisp.map(a=>byAno[a]?.t||0);
   charts['chartAnoTotal']=new Chart(document.getElementById('chartAnoTotal'),{
     type:'bar',
     data:{labels:labelsAno,datasets:[Object.assign({label:'Acidentes c/ vítima'},dsBarras(totais,a=>corAno[a]+'88',COR_PROJ))]},
@@ -1295,10 +1294,10 @@ function renderComparativo(){
 
   // Rodovias por ano — agrupadas pelo CÓDIGO da rodovia (SP-310), não pelo nome.
   // O campo Malha vem como "PREFIXO/NUMERO" (ex.: "000/310" = pista principal da SP-310,
-  // "423/310" = acesso à SP-310). O número após a barra identifica a rodovia; o prefixo
-  // distingue pista principal de acessos. Agrupar pelo número evita que a mesma rodovia
-  // apareça várias vezes por causa de grafias diferentes do nome
-  // (ex.: "Washington Luís", "WASHINGTON LUIS", "FELICIANO SALLES DA CUNHA" = todas SP-310).
+  // "423/310" = acesso à SP-310). O número após a barra identifica a rodovia.
+  // Agrupar por ele evita que a mesma rodovia apareça várias vezes por causa de grafias
+  // diferentes do nome (ex.: "Washington Luís", "WASHINGTON LUIS",
+  // "FELICIANO SALLES DA CUNHA" — todas são SP-310).
   dc('chartRodAno');
   const codRod=r=>{
     const m=(r.Malha||'').trim();
