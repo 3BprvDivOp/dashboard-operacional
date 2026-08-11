@@ -342,11 +342,17 @@ tr:hover td{background:var(--surface)}
   </div>
 </div>
 
-<div class="kpi-bar">
-  <div class="kpi k-total"><div class="kpi-label">Acidentes com vítimas</div><div class="kpi-val" id="kTotal">—</div><div class="kpi-sub" id="kPeriod">—</div></div>
-  <div class="kpi k-fatal"><div class="kpi-label">Vítimas fatais</div><div class="kpi-val" id="kFatal">—</div><div class="kpi-sub" id="kFatalAc">—</div></div>
-  <div class="kpi k-grave"><div class="kpi-label">Vítimas graves</div><div class="kpi-val" id="kGrave">—</div><div class="kpi-sub" id="kGraveAc">—</div></div>
-  <div class="kpi k-leve"><div class="kpi-label">Vítimas leves</div><div class="kpi-val" id="kLeve">—</div><div class="kpi-sub" id="kLeveAc">—</div></div>
+<div class="tabs">
+  <div class="tab active" onclick="showTab('geral',this)">Visão Geral</div>
+  <div class="tab" onclick="enterComparativo(this)">Comparativo Anual</div>
+  <div class="tab" onclick="showTab('trechos',this)">Trechos Críticos</div>
+  <div class="tab" onclick="showTab('temporal',this)">Análise Temporal</div>
+  <div class="tab" onclick="showTab('tabela',this)">Registros</div>
+  <div class="tab" onclick="showTab('mapa',this);initMap()">Mapa</div>
+  <div class="tab" onclick="showTab('daily',this);rdaSelectView('sinistro')">Acomp. Diário</div>
+  <div class="tab" onclick="showTab('calendario',this)">Calendário de Operações</div>
+  <div class="tab" onclick="showTab('telemetria',this)">Telemetria</div>
+  <div class="tab" onclick="showTab('auditoria',this)">Auditoria</div>
 </div>
 
 <div class="filters">
@@ -365,15 +371,13 @@ tr:hover td{background:var(--surface)}
   <button class="btn-clear" onclick="clearFilters()">Limpar</button>
 </div>
 
-<div class="tabs">
-  <div class="tab active" onclick="showTab('geral',this)">Visão Geral</div>
-  <div class="tab" onclick="showTab('comparativo',this)">Comparativo Anual</div>
-  <div class="tab" onclick="showTab('trechos',this)">Trechos Críticos</div>
-  <div class="tab" onclick="showTab('temporal',this)">Análise Temporal</div>
-  <div class="tab" onclick="showTab('tabela',this)">Registros</div>
-    <div class="tab" onclick="showTab('mapa',this);initMap()">Mapa</div>
-    <div class="tab" onclick="showTab('daily',this);rdaSelectView('sinistro')">Acomp. Diário</div>
+<div class="kpi-bar">
+  <div class="kpi k-total"><div class="kpi-label">Acidentes com vítimas</div><div class="kpi-val" id="kTotal">—</div><div class="kpi-sub" id="kPeriod">—</div></div>
+  <div class="kpi k-fatal"><div class="kpi-label">Vítimas fatais</div><div class="kpi-val" id="kFatal">—</div><div class="kpi-sub" id="kFatalAc">—</div></div>
+  <div class="kpi k-grave"><div class="kpi-label">Vítimas graves</div><div class="kpi-val" id="kGrave">—</div><div class="kpi-sub" id="kGraveAc">—</div></div>
+  <div class="kpi k-leve"><div class="kpi-label">Vítimas leves</div><div class="kpi-val" id="kLeve">—</div><div class="kpi-sub" id="kLeveAc">—</div></div>
 </div>
+
 
 <!-- GERAL -->
 <div class="tc active" id="tab-geral">
@@ -649,6 +653,33 @@ tr:hover td{background:var(--surface)}
 <!-- fecha rda-layout -->
 
 </div>
+</div>
+
+<!-- CALENDÁRIO DE OPERAÇÕES (em construção) -->
+<div class="tc" id="tab-calendario">
+  <div class="card" style="padding:40px;text-align:center">
+    <div class="ct">calendário de operações</div>
+    <div class="cs" style="margin-top:8px">Em construção</div>
+    <div style="color:#8b949e;font-size:13px;margin-top:14px">Este módulo ainda será desenvolvido.</div>
+  </div>
+</div>
+
+<!-- TELEMETRIA (em construção) -->
+<div class="tc" id="tab-telemetria">
+  <div class="card" style="padding:40px;text-align:center">
+    <div class="ct">telemetria</div>
+    <div class="cs" style="margin-top:8px">Em construção</div>
+    <div style="color:#8b949e;font-size:13px;margin-top:14px">Este módulo ainda será desenvolvido.</div>
+  </div>
+</div>
+
+<!-- AUDITORIA (em construção) -->
+<div class="tc" id="tab-auditoria">
+  <div class="card" style="padding:40px;text-align:center">
+    <div class="ct">auditoria</div>
+    <div class="cs" style="margin-top:8px">Em construção</div>
+    <div style="color:#8b949e;font-size:13px;margin-top:14px">Este módulo ainda será desenvolvido.</div>
+  </div>
 </div>
 
 
@@ -964,6 +995,19 @@ function showTab(id,el){
   document.getElementById('tab-'+id).classList.add('active');el.classList.add('active');
 }
 
+// Ao entrar no Comparativo Anual, libera ano e datas para mostrar TODOS os anos.
+// Os demais filtros (CIA, pelotão, rodovia, etc.) são preservados.
+function enterComparativo(el){
+  showTab('comparativo',el);
+  document.getElementById('fAno').value='';
+  const dates=allData.map(r=>r.DS).filter(Boolean).sort();
+  if(dates.length){
+    document.getElementById('fDataIn').value=dates[0];
+    document.getElementById('fDataFim').value=dates[dates.length-1];
+  }
+  applyAndRender();
+}
+
 function renderAll(){renderKPIs();renderCharts();renderComparativo();renderTrechos();renderTemporal();renderTable();if(mapInited)updateMap();}
 
 function renderKPIs(){
@@ -1145,9 +1189,26 @@ function renderComparativo(){
     byAno[a]={t:d.length,f:d.reduce((s,r)=>s+r.F,0),g:d.reduce((s,r)=>s+r.G,0),l:d.reduce((s,r)=>s+r.L,0)};
   });
 
+  // ── Projeção de fechamento de 2026 ──
+  // Regra: valor_parcial / dias_decorridos * dias_do_ano.
+  // "dias decorridos" vem da última data com registro em 2026 (a base só tem dado
+  // até o último BOPM lançado), não da data de hoje.
+  const ANO_PROJ='2026', DIAS_ANO=365;
+  const MESES_ABREV=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  const dProj=base.filter(r=>r.Ano===ANO_PROJ&&r.DS);
+  let diasDecorridos=0, ultimoMesIdx=-1;
+  if(dProj.length){
+    const maxDS=dProj.map(r=>r.DS).sort().pop();
+    ultimoMesIdx=parseInt(maxDS.slice(5,7),10)-1;
+    diasDecorridos=Math.round((new Date(maxDS+'T12:00:00')-new Date(ANO_PROJ+'-01-01T12:00:00'))/86400000)+1;
+  }
+  const temProj=diasDecorridos>0&&diasDecorridos<DIAS_ANO;
+  const projetar=v=>temProj?Math.round(v*DIAS_ANO/diasDecorridos):0;
+  const rotuloParcial=ultimoMesIdx>=0?' (jan–'+MESES_ABREV[ultimoMesIdx]+')':'';
+
   document.getElementById('compResumo').innerHTML=anos.map((a,i)=>`
     <div class="comp-card">
-      <div class="comp-ano" style="color:${corAno[a]}">${a}${a==='2026'?' (jan–abr)':''}</div>
+      <div class="comp-ano" style="color:${corAno[a]}">${a}${a===ANO_PROJ?rotuloParcial:''}</div>
       <div class="comp-val" style="color:${corAno[a]}">${(byAno[a]?.t||0).toLocaleString('pt-BR')}</div>
       <div class="comp-sub" style="color:var(--muted)">acidentes c/ vítima</div>
       <div style="margin-top:8px;font-size:11px">
@@ -1157,21 +1218,60 @@ function renderComparativo(){
       ${i>0?`<div style="font-size:11px;margin-top:4px">${trendIcon(byAno[a]?.t||0,byAno[anos[i-1]]?.t||0)} vs ${anos[i-1]}</div>`:''}
     </div>`).join('');
 
-  // Gráfico total por ano
+  // Gráfico total por ano (+ barra de tendência de fechamento de 2026)
   dc('chartAnoTotal');
   const anosDisp=anos.filter(a=>byAno[a]?.t>0);
+  const mostrarProj=temProj&&anosDisp.indexOf(ANO_PROJ)>=0;
+  const COR_PROJ='#a371f7'; // roxo: distingue projeção de dado realizado
+
+  // Rótulo com quebra de linha (Chart.js aceita array = várias linhas)
+  const labelsAno=anosDisp.slice();
+  if(mostrarProj)labelsAno.push([ANO_PROJ,'tendência']);
+
+  function dsBarras(valores,corFn,corProj){
+    const cores=anosDisp.map(corFn),bordas=anosDisp.map(a=>corAno[a]);
+    if(mostrarProj){cores.push(corProj+'33');bordas.push(corProj);}
+    return{
+      data:mostrarProj?valores.concat([projetar(valores[anosDisp.indexOf(ANO_PROJ)])]):valores,
+      backgroundColor:cores,borderColor:bordas,borderWidth:2,
+      // borda tracejada só na barra de projeção, para não parecer dado consolidado
+      borderDash:mostrarProj?anosDisp.map(()=>[]).concat([[6,4]]):[]
+    };
+  }
+
+  const totais=anosDisp.map(a=>byAno[a]?.t||0);
+  const dlAno={display:true,anchor:'center',align:'center',color:'#ffffff',
+               font:{size:20,family:'Oswald',weight:'bold'},
+               formatter:v=>v.toLocaleString('pt-BR')};
   charts['chartAnoTotal']=new Chart(document.getElementById('chartAnoTotal'),{
     type:'bar',
-    data:{labels:anosDisp,datasets:[{label:'Acidentes c/ vítima',data:anosDisp.map(a=>byAno[a]?.t||0),backgroundColor:anosDisp.map(a=>corAno[a]+'88'),borderColor:anosDisp.map(a=>corAno[a]),borderWidth:2}]},
-    options:{plugins:{legend:{display:false}},responsive:true,maintainAspectRatio:false,scales:sc}
+    data:{labels:labelsAno,datasets:[Object.assign({label:'Acidentes c/ vítima'},dsBarras(totais,a=>corAno[a]+'88',COR_PROJ))]},
+    options:{plugins:{legend:{display:false},datalabels:dlAno},responsive:true,maintainAspectRatio:false,scales:sc}
   });
 
-  // Gráfico fatais por ano
+  // Gráfico fatais por ano (+ tendência)
   dc('chartAnoFatal');
+  const fatais=anosDisp.map(a=>byAno[a]?.f||0);
   charts['chartAnoFatal']=new Chart(document.getElementById('chartAnoFatal'),{
     type:'bar',
-    data:{labels:anosDisp,datasets:[{label:'Vítimas fatais',data:anosDisp.map(a=>byAno[a]?.f||0),backgroundColor:'#f8514966',borderColor:'#f85149',borderWidth:2}]},
-    options:{plugins:{legend:{display:false}},responsive:true,maintainAspectRatio:false,scales:sc}
+    data:{labels:labelsAno,datasets:[Object.assign({label:'Vítimas fatais'},dsBarras(fatais,()=>'#f8514966',COR_PROJ))]},
+    options:{plugins:{legend:{display:false},datalabels:dlAno},responsive:true,maintainAspectRatio:false,scales:sc}
+  });
+
+  // Nota explicativa sob os gráficos (criada uma vez, atualizada a cada render)
+  ['chartAnoTotal','chartAnoFatal'].forEach(function(cid){
+    const card=document.getElementById(cid).closest('.card');
+    if(!card)return;
+    let nota=card.querySelector('._projNota');
+    if(!nota){
+      nota=document.createElement('div');
+      nota.className='_projNota';
+      nota.style.cssText='font-size:10px;color:var(--muted);margin-top:6px;text-align:center';
+      card.appendChild(nota);
+    }
+    nota.innerHTML=mostrarProj
+      ?'<span style="color:'+COR_PROJ+'">■</span> tendência = projeção com base em '+diasDecorridos+' dias de '+ANO_PROJ+' (de '+DIAS_ANO+')'
+      :'';
   });
 
   // Evolução mensal
@@ -1187,25 +1287,44 @@ function renderComparativo(){
   }));
   charts['chartMensal']=new Chart(document.getElementById('chartMensal'),{
     type:'line',data:{labels:meses,datasets},
-    options:{plugins:{legend:{labels:{color:'#8b949e',font:{size:11},boxWidth:12}}},responsive:true,maintainAspectRatio:false,scales:sc}
+    options:{layout:{padding:{top:16}},plugins:{legend:{labels:{color:'#8b949e',font:{size:11},boxWidth:12}},
+      datalabels:{display:true,align:'top',anchor:'end',color:'#ffffff',
+        font:{size:11,family:'Oswald',weight:'bold'},
+        formatter:v=>v>0?v.toLocaleString('pt-BR'):''}},
+      responsive:true,maintainAspectRatio:false,scales:sc}
   });
 
-  // Rodovias por ano
+  // Rodovias por ano — agrupadas pelo CÓDIGO da rodovia (SP-310), não pelo nome.
+  // O campo Malha vem como "PREFIXO/NUMERO" (ex.: "000/310" = pista principal da SP-310,
+  // "423/310" = acesso à SP-310). O número após a barra identifica a rodovia; o prefixo
+  // distingue pista principal de acessos. Agrupar pelo número evita que a mesma rodovia
+  // apareça várias vezes por causa de grafias diferentes do nome
+  // (ex.: "Washington Luís", "WASHINGTON LUIS", "FELICIANO SALLES DA CUNHA" = todas SP-310).
   dc('chartRodAno');
-  const topRods=[...new Set(base.map(r=>r.Rod).filter(r=>r!=='Não informada'))];
-  const rodCount={};topRods.forEach(r=>{rodCount[r]=base.filter(d=>d.Rod===r).length;});
+  const codRod=r=>{
+    const m=(r.Malha||'').trim();
+    if(!m||m==='Não informada'||m==='--')return '';
+    const p=m.split('/');
+    const num=(p.length>1?p[1]:m).trim();
+    return /^\d+$/.test(num)?'SP-'+num.padStart(3,'0'):num;
+  };
+  const rodCount={};
+  base.forEach(r=>{const c=codRod(r);if(c)rodCount[c]=(rodCount[c]||0)+1;});
   const top8=Object.entries(rodCount).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([k])=>k);
+  const dlBarra={display:true,anchor:'end',align:'top',color:'#ffffff',
+                 font:{size:12,family:'Oswald',weight:'bold'},
+                 formatter:v=>v>0?v.toLocaleString('pt-BR'):''};
   charts['chartRodAno']=new Chart(document.getElementById('chartRodAno'),{
     type:'bar',
     data:{
-      labels:top8.map(r=>r.split('·')[1]?.trim()||r),
+      labels:top8,
       datasets:anos.map(a=>({
         label:a,
-        data:top8.map(r=>base.filter(d=>d.Ano===a&&d.Rod===r).length),
+        data:top8.map(c=>base.filter(d=>d.Ano===a&&codRod(d)===c).length),
         backgroundColor:corAno[a]+'88',borderColor:corAno[a],borderWidth:1
       }))
     },
-    options:{plugins:{legend:{labels:lg.labels}},responsive:true,maintainAspectRatio:false,scales:{...sc,x:{...sc.x,ticks:{...sc.x.ticks,maxRotation:30}}}}
+    options:{layout:{padding:{top:18}},plugins:{legend:{labels:lg.labels},datalabels:dlBarra},responsive:true,maintainAspectRatio:false,scales:{...sc,x:{...sc.x,ticks:{...sc.x.ticks,maxRotation:0}}}}
   });
 
   // Tipos por ano
@@ -1222,7 +1341,7 @@ function renderComparativo(){
         backgroundColor:corAno[a]+'88',borderColor:corAno[a],borderWidth:1
       }))
     },
-    options:{plugins:{legend:{labels:lg.labels}},responsive:true,maintainAspectRatio:false,scales:{...sc,x:{...sc.x,ticks:{...sc.x.ticks,maxRotation:30}}}}
+    options:{layout:{padding:{top:18}},plugins:{legend:{labels:lg.labels},datalabels:dlBarra},responsive:true,maintainAspectRatio:false,scales:{...sc,x:{...sc.x,ticks:{...sc.x.ticks,maxRotation:30}}}}
   });
 }
 
