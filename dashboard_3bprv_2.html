@@ -355,6 +355,13 @@ tr:hover td{background:var(--surface)}
   <div class="tab" onclick="showTab('auditoria',this)">Auditoria</div>
 </div>
 
+<div class="kpi-bar">
+  <div class="kpi k-total"><div class="kpi-label">Acidentes com vítimas</div><div class="kpi-val" id="kTotal">—</div><div class="kpi-sub" id="kPeriod">—</div></div>
+  <div class="kpi k-fatal"><div class="kpi-label">Vítimas fatais</div><div class="kpi-val" id="kFatal">—</div><div class="kpi-sub" id="kFatalAc">—</div></div>
+  <div class="kpi k-grave"><div class="kpi-label">Vítimas graves</div><div class="kpi-val" id="kGrave">—</div><div class="kpi-sub" id="kGraveAc">—</div></div>
+  <div class="kpi k-leve"><div class="kpi-label">Vítimas leves</div><div class="kpi-val" id="kLeve">—</div><div class="kpi-sub" id="kLeveAc">—</div></div>
+</div>
+
 <div class="filters">
   <div class="fg"><div class="fl">Ano</div><select id="fAno"><option value="">Todos</option><option>2024</option><option>2025</option><option>2026</option></select></div>
   <div class="fg"><div class="fl">CIA</div><select id="fCia"><option value="">Todas</option></select></div>
@@ -369,13 +376,6 @@ tr:hover td{background:var(--surface)}
   <div class="fg"><div class="fl">Data fim</div><input type="date" id="fDataFim"></div>
   <button class="btn-apply" onclick="applyAndRender()">Aplicar</button>
   <button class="btn-clear" onclick="clearFilters()">Limpar</button>
-</div>
-
-<div class="kpi-bar">
-  <div class="kpi k-total"><div class="kpi-label">Acidentes com vítimas</div><div class="kpi-val" id="kTotal">—</div><div class="kpi-sub" id="kPeriod">—</div></div>
-  <div class="kpi k-fatal"><div class="kpi-label">Vítimas fatais</div><div class="kpi-val" id="kFatal">—</div><div class="kpi-sub" id="kFatalAc">—</div></div>
-  <div class="kpi k-grave"><div class="kpi-label">Vítimas graves</div><div class="kpi-val" id="kGrave">—</div><div class="kpi-sub" id="kGraveAc">—</div></div>
-  <div class="kpi k-leve"><div class="kpi-label">Vítimas leves</div><div class="kpi-val" id="kLeve">—</div><div class="kpi-sub" id="kLeveAc">—</div></div>
 </div>
 
 
