@@ -934,6 +934,17 @@ function computeDateRangeForAno(ano){
   return [inicio, ano+'-12-31'];
 }
 
+// Converte o campo Malha ("PREFIXO/NUMERO", ex. "000/310") no código da rodovia (ex. "SP-310").
+// Usado para agrupar o filtro de Rodovia por código em vez de nome, já que o mesmo trecho
+// aparece com várias grafias diferentes de nome (ex. "Washington Luís", "WASHINGTON LUIS").
+function codRod(r){
+  const m=(r.Malha||'').trim();
+  if(!m||m==='Não informada'||m==='--')return '';
+  const p=m.split('/');
+  const num=(p.length>1?p[1]:m).trim();
+  return /^\d+$/.test(num)?'SP-'+num.padStart(3,'0'):num;
+}
+
 // Disparado ao trocar o select de Ano: atualiza os campos de data automaticamente.
 function onAnoChange(){
   const ano = document.getElementById('fAno').value;
@@ -985,7 +996,7 @@ function populateFilters(){
   };
   fill('fCia',allData.map(r=>r.Cia),'Todas');
   fill('fPelotao',allData.map(r=>r.Pel),'Todos');
-  fill('fRodovia',allData.map(r=>r.Rod).filter(r=>r!=='Não informada'),'Todas');
+  fill('fRodovia',allData.map(r=>codRod(r)).filter(Boolean),'Todas');
   fill('fPeriodo',allData.map(r=>r.Per),'Todos');
   fill('fTipo',allData.map(r=>r.Tipo).filter(t=>t&&t!=='--'),'Todos');
 }
@@ -997,7 +1008,7 @@ function applyAndRender(){
     if(ano&&r.Ano!==ano)return false;
     if(cia&&r.Cia!==cia)return false;
     if(pel&&r.Pel!==pel)return false;
-    if(rod&&r.Rod!==rod)return false;
+    if(rod&&codRod(r)!==rod)return false;
     if(per&&r.Per!==per)return false;
     if(tip&&r.Tipo!==tip)return false;
     if(din&&r.DS<din)return false;
@@ -1327,13 +1338,6 @@ function renderComparativo(){
   // diferentes do nome (ex.: "Washington Luís", "WASHINGTON LUIS",
   // "FELICIANO SALLES DA CUNHA" — todas são SP-310).
   dc('chartRodAno');
-  const codRod=r=>{
-    const m=(r.Malha||'').trim();
-    if(!m||m==='Não informada'||m==='--')return '';
-    const p=m.split('/');
-    const num=(p.length>1?p[1]:m).trim();
-    return /^\d+$/.test(num)?'SP-'+num.padStart(3,'0'):num;
-  };
   const rodCount={};
   base.forEach(r=>{const c=codRod(r);if(c)rodCount[c]=(rodCount[c]||0)+1;});
   const top8=Object.entries(rodCount).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([k])=>k);
