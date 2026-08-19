@@ -934,15 +934,16 @@ function computeDateRangeForAno(ano){
   return [inicio, ano+'-12-31'];
 }
 
-// Converte o campo Malha ("PREFIXO/NUMERO", ex. "000/310") no código da rodovia (ex. "SP-310").
-// Usado para agrupar o filtro de Rodovia por código em vez de nome, já que o mesmo trecho
-// aparece com várias grafias diferentes de nome (ex. "Washington Luís", "WASHINGTON LUIS").
+// Retorna o código completo da Malha ("PREFIXO/NUMERO", ex. "000/310", "302/326") como
+// identificador da rodovia. Usado para agrupar o filtro de Rodovia por código em vez de
+// nome, já que o mesmo trecho aparece com várias grafias diferentes de nome (ex.
+// "Washington Luís", "WASHINGTON LUIS"). Mantemos o prefixo completo (ex. "302" vs "000")
+// porque ele distingue pista principal de acessos/ramais — reduzir para "SP-310" escondia
+// esses trechos por colidirem no mesmo código simplificado.
 function codRod(r){
   const m=(r.Malha||'').trim();
   if(!m||m==='Não informada'||m==='--')return '';
-  const p=m.split('/');
-  const num=(p.length>1?p[1]:m).trim();
-  return /^\d+$/.test(num)?'SP-'+num.padStart(3,'0'):num;
+  return m;
 }
 
 // Disparado ao trocar o select de Ano: atualiza os campos de data automaticamente.
