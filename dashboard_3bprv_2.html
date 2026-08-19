@@ -363,7 +363,7 @@ tr:hover td{background:var(--surface)}
 </div>
 
 <div class="filters">
-  <div class="fg"><div class="fl">Ano</div><select id="fAno"><option value="">Todos</option><option>2024</option><option>2025</option><option>2026</option></select></div>
+  <div class="fg"><div class="fl">Ano</div><select id="fAno" onchange="onAnoChange()"><option value="">Todos</option><option>2024</option><option>2025</option><option>2026</option></select></div>
   <div class="fg"><div class="fl">CIA</div><select id="fCia"><option value="">Todas</option></select></div>
   <div class="fg"><div class="fl">Pelotão</div><select id="fPelotao"><option value="">Todos</option></select></div>
   <div class="fg"><div class="fl">Rodovia</div><select id="fRodovia"><option value="">Todas</option></select></div>
@@ -915,6 +915,33 @@ const I={DA:0,DS:1,HR:2,HN:3,DW:4,AN:5,CI:6,PE:7,ML:8,RO:9,KM:10,MU:11,PR:12,TI:
 
 let allData=[], filteredData=[], charts={};
 
+// Calcula a data início/fim ideal para o Ano selecionado no filtro.
+// - Ano vazio ("Todos"): usa o intervalo completo de dados disponíveis.
+// - Ano atual (em andamento): 01/01/AAAA até a última data com dados na planilha.
+// - Ano anterior (já fechado): 01/01/AAAA até 31/12/AAAA.
+function computeDateRangeForAno(ano){
+  const todasDatas = allData.map(r=>r.DS).filter(Boolean).sort();
+  if(!ano){
+    return [todasDatas[0]||'', todasDatas[todasDatas.length-1]||''];
+  }
+  const anoAtual = String(new Date().getFullYear());
+  const inicio = ano+'-01-01';
+  if(ano === anoAtual){
+    const datasDoAno = todasDatas.filter(d=>d.startsWith(ano));
+    const fim = datasDoAno.length ? datasDoAno[datasDoAno.length-1] : inicio;
+    return [inicio, fim];
+  }
+  return [inicio, ano+'-12-31'];
+}
+
+// Disparado ao trocar o select de Ano: atualiza os campos de data automaticamente.
+function onAnoChange(){
+  const ano = document.getElementById('fAno').value;
+  const [ini,fim] = computeDateRangeForAno(ano);
+  document.getElementById('fDataIn').value = ini;
+  document.getElementById('fDataFim').value = fim;
+}
+
 function init(){
   if(typeof DB === 'undefined' || !DB.rows || DB.rows.length === 0) DB = window.DB;
   console.log('🔵 init() chamado — DB.rows:', DB.rows.length, '| cias:', JSON.stringify(cias), '| pels:', JSON.stringify(pels.slice(0,5)));
@@ -937,10 +964,12 @@ function init(){
     const _opts = Array.from(_selAno.options).map(o => o.value);
     if (_opts.includes(_anoAtual)) _selAno.value = _anoAtual;
   }
-  filteredData = allData.filter(r => r.Ano === _anoAtual);
+  const _anoSelecionado = _selAno ? _selAno.value : '';
+  filteredData = _anoSelecionado ? allData.filter(r => r.Ano === _anoSelecionado) : [...allData];
   if (filteredData.length === 0) filteredData = [...allData]; // fallback se ano não existir
-  const dates = filteredData.map(r=>r.DS).filter(Boolean).sort();
-  if(dates.length){document.getElementById('fDataIn').value=dates[0];document.getElementById('fDataFim').value=dates[dates.length-1];}
+  const [_dIni,_dFim] = computeDateRangeForAno(_anoSelecionado);
+  document.getElementById('fDataIn').value=_dIni;
+  document.getElementById('fDataFim').value=_dFim;
   renderAll();
 }
 
@@ -983,8 +1012,9 @@ function applyAndRender(){
 
 function clearFilters(){
   ['fAno','fCia','fPelotao','fRodovia','fGrav','fPeriodo','fTipo'].forEach(id=>document.getElementById(id).value='');
-  const dates=allData.map(r=>r.DS).filter(Boolean).sort();
-  if(dates.length){document.getElementById('fDataIn').value=dates[0];document.getElementById('fDataFim').value=dates[dates.length-1];}
+  const [ini,fim]=computeDateRangeForAno('');
+  document.getElementById('fDataIn').value=ini;
+  document.getElementById('fDataFim').value=fim;
   filteredData=[...allData];renderAll();
 }
 
@@ -999,11 +1029,9 @@ function showTab(id,el){
 function enterComparativo(el){
   showTab('comparativo',el);
   document.getElementById('fAno').value='';
-  const dates=allData.map(r=>r.DS).filter(Boolean).sort();
-  if(dates.length){
-    document.getElementById('fDataIn').value=dates[0];
-    document.getElementById('fDataFim').value=dates[dates.length-1];
-  }
+  const [ini,fim]=computeDateRangeForAno('');
+  document.getElementById('fDataIn').value=ini;
+  document.getElementById('fDataFim').value=fim;
   applyAndRender();
 }
 
