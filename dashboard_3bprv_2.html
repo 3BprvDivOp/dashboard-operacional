@@ -427,11 +427,11 @@ tr:hover td{background:var(--surface)}
   </div>
   <div class="g2">
     <div class="card"><div class="ct">acidentes com vítimas por ano</div><div class="cs">Evolução anual</div><div class="cw"><canvas id="chartAnoTotal"></canvas></div></div>
-    <div class="card"><div class="ct">vítimas fatais por ano</div><div class="cs">Evolução de óbitos</div><div class="cw"><canvas id="chartAnoFatal"></canvas></div></div>
+    <div class="card"><div class="ct">evolução mensal</div><div class="cs">Acidentes com vítimas · últimos 12 meses</div><div class="cw"><canvas id="chartMensal"></canvas></div></div>
   </div>
-  <div class="card">
-    <div class="ct">evolução mensal</div><div class="cs">Acidentes com vítimas por mês — todos os anos</div>
-    <div class="cwxl"><canvas id="chartMensal"></canvas></div>
+  <div class="g2">
+    <div class="card"><div class="ct">vítimas fatais por ano</div><div class="cs">Evolução de óbitos</div><div class="cw"><canvas id="chartAnoFatal"></canvas></div></div>
+    <div class="card"><div class="ct">evolução mensal — óbitos</div><div class="cs">Vítimas fatais · últimos 12 meses</div><div class="cw"><canvas id="chartMensalFatais"></canvas></div></div>
   </div>
   <div class="g2">
     <div class="card"><div class="ct">rodovias · comparativo anual</div><div class="cs">Top 8 rodovias por ano</div><div class="cwl"><canvas id="chartRodAno"></canvas></div></div>
@@ -1234,12 +1234,14 @@ function renderComparativo(){
   // até o último BOPM lançado), não da data de hoje.
   const ANO_PROJ='2026', DIAS_ANO=365;
   const MESES_ABREV=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  const MESES_CAP=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const COR_PROJ='#a371f7'; // roxo: distingue projeção/tendência de dado realizado
   const dProj=base.filter(r=>r.Ano===ANO_PROJ&&r.DS);
-  let diasDecorridos=0, ultimoMesIdx=-1;
+  let diasDecorridos=0, ultimoMesIdx=-1, maxDS2026=null;
   if(dProj.length){
-    const maxDS=dProj.map(r=>r.DS).sort().pop();
-    ultimoMesIdx=parseInt(maxDS.slice(5,7),10)-1;
-    diasDecorridos=Math.round((new Date(maxDS+'T12:00:00')-new Date(ANO_PROJ+'-01-01T12:00:00'))/86400000)+1;
+    maxDS2026=dProj.map(r=>r.DS).sort().pop();
+    ultimoMesIdx=parseInt(maxDS2026.slice(5,7),10)-1;
+    diasDecorridos=Math.round((new Date(maxDS2026+'T12:00:00')-new Date(ANO_PROJ+'-01-01T12:00:00'))/86400000)+1;
   }
   const temProj=diasDecorridos>0&&diasDecorridos<DIAS_ANO;
   const projetar=v=>temProj?Math.round(v*DIAS_ANO/diasDecorridos):0;
@@ -1261,7 +1263,6 @@ function renderComparativo(){
   dc('chartAnoTotal');
   const anosDisp=anos.filter(a=>byAno[a]?.t>0);
   const mostrarProj=temProj&&anosDisp.indexOf(ANO_PROJ)>=0;
-  const COR_PROJ='#a371f7'; // roxo: distingue projeção de dado realizado
 
   const labelsAno=anosDisp.slice();
   if(mostrarProj)labelsAno.push([ANO_PROJ,'tendência']);
@@ -1297,7 +1298,7 @@ function renderComparativo(){
   });
 
   // Nota explicativa sob os gráficos (criada uma vez, atualizada a cada render)
-  ['chartAnoTotal','chartAnoFatal'].forEach(function(cid){
+  function aplicarNota(cid,texto){
     const card=document.getElementById(cid).closest('.card');
     if(!card)return;
     let nota=card.querySelector('._projNota');
@@ -1307,30 +1308,89 @@ function renderComparativo(){
       nota.style.cssText='font-size:10px;color:var(--muted);margin-top:6px;text-align:center';
       card.appendChild(nota);
     }
-    nota.innerHTML=mostrarProj
-      ?'<span style="color:'+COR_PROJ+'">■</span> tendência = projeção com base em '+diasDecorridos+' dias de '+ANO_PROJ+' (de '+DIAS_ANO+')'
-      :'';
+    nota.innerHTML=texto;
+  }
+  ['chartAnoTotal','chartAnoFatal'].forEach(cid=>aplicarNota(cid,mostrarProj
+    ?'<span style="color:'+COR_PROJ+'">■</span> tendência = projeção com base em '+diasDecorridos+' dias de '+ANO_PROJ+' (de '+DIAS_ANO+')'
+    :''));
+
+  // ── Evolução mensal — janela móvel dos últimos 12 meses, com um ano por linha ──
+  // Em vez de fixar Jan→Dez (o que deixava o ano corrente com meses futuros
+  // "zerados"), cada linha é uma janela de 12 meses terminando no mesmo mês de
+  // referência (o mês mais recente com BOPM lançado, ex.: agosto). Assim
+  // 2024/2025/2026 ficam alinhados no eixo por posição (Set→Ago), cada um
+  // com seu próprio ano real, e dá pra comparar o mesmo ciclo entre os anos.
+  // O último ponto da linha do ano corrente mostra uma tendência (projeção do
+  // mês incompleto), no mesmo espírito da projeção anual acima.
+  const todasDS=base.map(r=>r.DS).filter(Boolean).sort();
+  const refDS=maxDS2026||todasDS[todasDS.length-1]||null;
+  const refDate=refDS?new Date(refDS+'T12:00:00'):new Date();
+  const refAno=refDate.getFullYear(), refMesIdx=refDate.getMonth();
+  const ultimoIdx=11;
+  const diaRef=refDS?parseInt(refDS.slice(8,10),10):0;
+  const diasNoMesRef=new Date(refAno,refMesIdx+1,0).getDate();
+  const temProjMes=diaRef>0&&diaRef<diasNoMesRef;
+  const projetarMes=v=>temProjMes?Math.round(v*diasNoMesRef/diaRef):v;
+  const minAnoDados=Math.min(...anosDisp.map(Number));
+
+  function janelaParaAno(anoFinal){
+    const arr=[];
+    for(let i=11;i>=0;i--){
+      const dj=new Date(anoFinal,refMesIdx-i,1);
+      arr.push({ano:dj.getFullYear(),mesIdx:dj.getMonth()});
+    }
+    return arr;
+  }
+  const labelsJanela=janelaParaAno(refAno).map(j=>MESES_CAP[j.mesIdx]);
+
+  function montarDatasetAno(anoFinal,campo){
+    const anoFinalNum=parseInt(anoFinal,10);
+    const cor=corAno[anoFinal]||'#8b949e';
+    const janelaA=janelaParaAno(anoFinalNum);
+    const brutos=janelaA.map(j=>{
+      if(j.ano<minAnoDados)return null;
+      const m=String(j.mesIdx+1).padStart(2,'0'),a=String(j.ano);
+      const recs=base.filter(r=>r.Ano===a&&r.DS&&r.DS.slice(5,7)===m);
+      return campo==='fatais'?recs.reduce((s,r)=>s+r.F,0):recs.length;
+    });
+    const valores=brutos.slice();
+    const aplicarTend=anoFinalNum===refAno&&temProjMes;
+    if(aplicarTend&&valores[ultimoIdx]!=null)valores[ultimoIdx]=projetarMes(brutos[ultimoIdx]);
+    return{
+      label:anoFinal,data:valores,borderColor:cor,backgroundColor:cor+'33',tension:.3,fill:false,
+      pointRadius:4,pointHoverRadius:6,borderWidth:2,spanGaps:false,
+      pointBackgroundColor:valores.map((_,i)=>(aplicarTend&&i===ultimoIdx)?COR_PROJ:cor),
+      pointBorderColor:valores.map((_,i)=>(aplicarTend&&i===ultimoIdx)?COR_PROJ:cor),
+      segment:{
+        borderColor:ctx=>(aplicarTend&&ctx.p1DataIndex===ultimoIdx)?COR_PROJ:cor,
+        borderDash:ctx=>(aplicarTend&&ctx.p1DataIndex===ultimoIdx)?[6,4]:[]
+      }
+    };
+  }
+  const dlJanela={display:true,align:'top',anchor:'end',
+    color:ctx=>(ctx.dataset.label===String(refAno)&&temProjMes&&ctx.dataIndex===ultimoIdx)?COR_PROJ:ctx.dataset.borderColor,
+    font:{size:11,family:'Oswald',weight:'bold'},
+    formatter:v=>v>0?v.toLocaleString('pt-BR'):''};
+  const lgJanela={labels:{color:'#8b949e',font:{size:11},boxWidth:12}};
+
+  dc('chartMensal');
+  charts['chartMensal']=new Chart(document.getElementById('chartMensal'),{
+    type:'line',
+    data:{labels:labelsJanela,datasets:anosDisp.map(a=>montarDatasetAno(a,'total'))},
+    options:{layout:{padding:{top:16}},plugins:{legend:lgJanela,datalabels:dlJanela},responsive:true,maintainAspectRatio:false,scales:sc}
   });
 
-  // Evolução mensal
-  dc('chartMensal');
-  const meses=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-  const datasets=anos.map(a=>({
-    label:a,
-    data:meses.map((_,mi)=>{
-      const m=String(mi+1).padStart(2,'0');
-      return base.filter(r=>r.Ano===a&&r.DS&&r.DS.slice(5,7)===m).length;
-    }),
-    borderColor:corAno[a],backgroundColor:corAno[a]+'33',tension:.3,fill:false,pointRadius:3
-  }));
-  charts['chartMensal']=new Chart(document.getElementById('chartMensal'),{
-    type:'line',data:{labels:meses,datasets},
-    options:{layout:{padding:{top:16}},plugins:{legend:{labels:{color:'#8b949e',font:{size:11},boxWidth:12}},
-      datalabels:{display:true,align:'top',anchor:'end',color:'#ffffff',
-        font:{size:11,family:'Oswald',weight:'bold'},
-        formatter:v=>v>0?v.toLocaleString('pt-BR'):''}},
-      responsive:true,maintainAspectRatio:false,scales:sc}
+  dc('chartMensalFatais');
+  charts['chartMensalFatais']=new Chart(document.getElementById('chartMensalFatais'),{
+    type:'line',
+    data:{labels:labelsJanela,datasets:anosDisp.map(a=>montarDatasetAno(a,'fatais'))},
+    options:{layout:{padding:{top:16}},plugins:{legend:lgJanela,datalabels:dlJanela},responsive:true,maintainAspectRatio:false,scales:sc}
   });
+
+  const notaMensalTxt=temProjMes
+    ?'<span style="color:'+COR_PROJ+'">■</span> tendência = projeção do mês com base em '+diaRef+' dias de '+MESES_CAP[refMesIdx]+'/'+refAno+' (de '+diasNoMesRef+')'
+    :'';
+  ['chartMensal','chartMensalFatais'].forEach(cid=>aplicarNota(cid,notaMensalTxt));
 
   // Rodovias por ano — agrupadas pelo CÓDIGO da rodovia (SP-310), não pelo nome.
   // O campo Malha vem como "PREFIXO/NUMERO" (ex.: "000/310" = pista principal da SP-310,
