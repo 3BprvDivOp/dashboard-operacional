@@ -1356,8 +1356,15 @@ function renderComparativo(){
     const valores=brutos.slice();
     const aplicarTend=anoFinalNum===refAno&&temProjMes;
     if(aplicarTend&&valores[ultimoIdx]!=null)valores[ultimoIdx]=projetarMes(brutos[ultimoIdx]);
+    // Rótulo mostra o ciclo real de 12 meses (ex.: "2026 (set/25–ago/26)"), já que
+    // a janela de cada "ano" começa no ano anterior — evita a leitura errada de
+    // que set/out/nov/dez já teriam dados lançados no ano corrente.
+    const anoIni=janelaA[0].ano;
+    const labelCompleto=anoIni===anoFinalNum
+      ?String(anoFinalNum)
+      :anoFinalNum+' ('+MESES_ABREV[janelaA[0].mesIdx]+'/'+String(anoIni).slice(2)+'–'+MESES_ABREV[janelaA[ultimoIdx].mesIdx]+'/'+String(anoFinalNum).slice(2)+')';
     return{
-      label:anoFinal,data:valores,borderColor:cor,backgroundColor:cor+'33',tension:.3,fill:false,
+      label:labelCompleto,data:valores,borderColor:cor,backgroundColor:cor+'33',tension:.3,fill:false,
       pointRadius:4,pointHoverRadius:6,borderWidth:2,spanGaps:false,
       pointBackgroundColor:valores.map((_,i)=>(aplicarTend&&i===ultimoIdx)?COR_PROJ:cor),
       pointBorderColor:valores.map((_,i)=>(aplicarTend&&i===ultimoIdx)?COR_PROJ:cor),
