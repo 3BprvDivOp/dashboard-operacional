@@ -330,6 +330,19 @@ tr:hover td{background:var(--surface)}
   .rda-grid{grid-template-columns:1fr}
 }
 
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.cal-dow{font-size:11px;color:#8b949e;text-transform:uppercase;text-align:center;padding:4px 0;font-weight:bold}
+.cal-dow.weekend{color:#f85149}
+.cal-cell{background:#0d1117;border:1px solid #21262d;border-radius:6px;padding:6px;min-height:92px;display:flex;flex-direction:column;gap:3px}
+.cal-cell.weekend{border-color:#3d2020}
+.cal-cell.empty{background:transparent;border:none}
+.cal-daynum{font-size:12px;font-weight:bold;color:#e6edf3}
+.cal-cell.weekend .cal-daynum{color:#f85149}
+.cal-bprv{font-size:9px;color:#6e7681;line-height:1.3;max-height:26px;overflow:hidden}
+.cal-cia-row{display:flex;align-items:flex-start;gap:4px;font-size:10px;line-height:1.3}
+.cal-cia-dot{width:7px;height:7px;border-radius:2px;flex-shrink:0;margin-top:2px}
+.cal-cia-txt{color:#c9d1d9;word-break:break-word}
+
 </style>
 </head>
 <body>
@@ -350,7 +363,7 @@ tr:hover td{background:var(--surface)}
   <div class="tab" onclick="showTab('tabela',this)">Registros</div>
   <div class="tab" onclick="showTab('mapa',this);initMap()">Mapa</div>
   <div class="tab" onclick="showTab('daily',this);rdaSelectView('sinistro')">Acomp. Diário</div>
-  <div class="tab" onclick="showTab('calendario',this)">Calendário de Operações</div>
+  <div class="tab" onclick="showTab('calendario',this);enterCalendario()">Calendário de Operações</div>
   <div class="tab" onclick="showTab('telemetria',this)">Telemetria</div>
   <div class="tab" onclick="showTab('auditoria',this)">Auditoria</div>
 </div>
@@ -654,12 +667,29 @@ tr:hover td{background:var(--surface)}
 </div>
 </div>
 
-<!-- CALENDÁRIO DE OPERAÇÕES (em construção) -->
+<!-- CALENDÁRIO DE OPERAÇÕES -->
 <div class="tc" id="tab-calendario">
-  <div class="card" style="padding:40px;text-align:center">
-    <div class="ct">calendário de operações</div>
-    <div class="cs" style="margin-top:8px">Em construção</div>
-    <div style="color:#8b949e;font-size:13px;margin-top:14px">Este módulo ainda será desenvolvido.</div>
+  <div class="card" style="padding:16px 20px">
+    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+      <div class="ct" style="margin:0">calendário de operações</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
+        <select id="calMes" onchange="calCarregar()" style="background:#0d1117;border:1px solid #30363d;color:#e6edf3;border-radius:6px;padding:6px 10px;font-family:'Oswald',sans-serif"></select>
+        <select id="calAno" onchange="calCarregar()" style="background:#0d1117;border:1px solid #30363d;color:#e6edf3;border-radius:6px;padding:6px 10px;font-family:'Oswald',sans-serif"></select>
+        <button onclick="calCarregar(true)" style="background:#f0a830;border:none;color:#0d1117;font-weight:bold;border-radius:6px;padding:6px 14px;cursor:pointer;font-family:'Oswald',sans-serif">↻ Atualizar</button>
+      </div>
+    </div>
+    <div class="cs" style="margin-top:4px">Fonte: planilha "CALENDÁRIO DE OPERAÇÕES" · atualiza ao vivo</div>
+    <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:12px;font-size:11px;color:#8b949e">
+      <span><span style="display:inline-block;width:10px;height:10px;background:#e8d44d;border-radius:2px;margin-right:5px;vertical-align:middle"></span>1ª CIA</span>
+      <span><span style="display:inline-block;width:10px;height:10px;background:#3fb950;border-radius:2px;margin-right:5px;vertical-align:middle"></span>2ª CIA</span>
+      <span><span style="display:inline-block;width:10px;height:10px;background:#22d3c5;border-radius:2px;margin-right:5px;vertical-align:middle"></span>3ª CIA</span>
+      <span><span style="display:inline-block;width:10px;height:10px;background:#f0a830;border-radius:2px;margin-right:5px;vertical-align:middle"></span>4ª CIA</span>
+    </div>
+  </div>
+  <div class="card" style="margin-top:14px;min-height:200px">
+    <div id="calGrid">
+      <div class="rda-loading">Selecione um mês.</div>
+    </div>
   </div>
 </div>
 
@@ -2121,6 +2151,90 @@ function rdaFmtPct(p){
   if(p===null||p===undefined) return '--';
   const s = p>0?'+':'';
   return s + p.toFixed(2).replace('.',',') + '%';
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// CALENDÁRIO DE OPERAÇÕES
+// ══════════════════════════════════════════════════════════════════════════
+const CAL_MESES=['JANEIRO','FEVEREIRO','MARÇO','ABRIL','MAIO','JUNHO','JULHO','AGOSTO','SETEMBRO','OUTUBRO','NOVEMBRO','DEZEMBRO'];
+const CAL_DOW=['SEGUNDA-FEIRA','TERÇA-FEIRA','QUARTA-FEIRA','QUINTA-FEIRA','SEXTA-FEIRA','SÁBADO','DOMINGO'];
+const CAL_DOW_CURTO=['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
+const CAL_CIA_COR={'1ª CIA':'#e8d44d','2ª CIA':'#3fb950','3ª CIA':'#22d3c5','4ª CIA':'#f0a830'};
+const CAL_CACHE={}; // CAL_CACHE['SETEMBRO-2026'] = {dias:{...}}
+let calSelecaoIniciada=false;
+
+function enterCalendario(){
+  if(calSelecaoIniciada)return;
+  calSelecaoIniciada=true;
+  const selMes=document.getElementById('calMes'), selAno=document.getElementById('calAno');
+  selMes.innerHTML=CAL_MESES.map((m,i)=>`<option value="${m}">${m.charAt(0)+m.slice(1).toLowerCase()}</option>`).join('');
+  const hoje=new Date(), anoAtual=hoje.getFullYear();
+  selAno.innerHTML=[anoAtual-1,anoAtual,anoAtual+1].map(a=>`<option value="${a}">${a}</option>`).join('');
+  selMes.value=CAL_MESES[hoje.getMonth()];
+  selAno.value=String(anoAtual);
+  calCarregar();
+}
+
+function calCarregar(forcar){
+  const mes=document.getElementById('calMes').value;
+  const ano=document.getElementById('calAno').value;
+  const chave=mes+'-'+ano;
+  const grid=document.getElementById('calGrid');
+  if(!forcar&&CAL_CACHE[chave]){calRenderGrid(CAL_CACHE[chave],mes,ano);return;}
+  grid.innerHTML='<div class="rda-loading">Carregando calendário de '+mes.charAt(0)+mes.slice(1).toLowerCase()+'/'+ano+'...</div>';
+  const url=APPS_SCRIPT_URL+'?fonte=calendario&mes='+encodeURIComponent(mes)+'&ano='+encodeURIComponent(ano)+'&_t='+Date.now();
+  fetch(url)
+    .then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
+    .then(json=>{
+      if(!json.ok)throw new Error(json.error||'Erro na API do Calendário');
+      CAL_CACHE[chave]=json;
+      calRenderGrid(json,mes,ano);
+    })
+    .catch(err=>{
+      grid.innerHTML='<div class="rda-loading" style="color:var(--fatal)">❌ Erro ao carregar calendário: '+err.message+'</div>';
+    });
+}
+
+function calRenderGrid(json,mes,ano){
+  const grid=document.getElementById('calGrid');
+  const chaves=Object.keys(json.dias||{}).sort();
+  if(chaves.length===0){
+    grid.innerHTML='<div class="rda-loading">'+(json.aviso||'Nenhum dado encontrado para '+mes+'/'+ano+'.')+'</div>';
+    return;
+  }
+
+  // Monta semanas: cada linha com 7 colunas (Seg→Dom), preenchendo com null antes/depois do mês.
+  const primeiroDow=CAL_DOW.indexOf(json.dias[chaves[0]].diaSemana);
+  const semanas=[[]];
+  for(let i=0;i<primeiroDow;i++)semanas[0].push(null);
+  chaves.forEach(k=>{
+    let semanaAtual=semanas[semanas.length-1];
+    if(semanaAtual.length>=7){semanaAtual=[];semanas.push(semanaAtual);}
+    semanaAtual.push({data:k,...json.dias[k]});
+  });
+  const ultima=semanas[semanas.length-1];
+  while(ultima.length<7)ultima.push(null);
+
+  const cabecalho=CAL_DOW_CURTO.map((d,i)=>`<div class="cal-dow${i>=5?' weekend':''}">${d}</div>`).join('');
+
+  const celulas=semanas.map(sem=>sem.map((d,i)=>{
+    const weekend=i>=5;
+    if(!d)return `<div class="cal-cell empty"></div>`;
+    const diaNum=parseInt(d.data.slice(8,10),10);
+    const bprvTxt=(d.bprv||[]).join(', ');
+    const ciaRows=['1ª CIA','2ª CIA','3ª CIA','4ª CIA'].map(cia=>{
+      const ops=d.cias&&d.cias[cia]?d.cias[cia]:[];
+      if(!ops.length)return '';
+      return `<div class="cal-cia-row"><span class="cal-cia-dot" style="background:${CAL_CIA_COR[cia]}"></span><span class="cal-cia-txt">${ops.join(', ')}</span></div>`;
+    }).join('');
+    return `<div class="cal-cell${weekend?' weekend':''}">
+      <div class="cal-daynum">${diaNum}</div>
+      ${bprvTxt?`<div class="cal-bprv" title="${bprvTxt}">${bprvTxt}</div>`:''}
+      ${ciaRows}
+    </div>`;
+  }).join('')).join('');
+
+  grid.innerHTML=`<div class="cal-grid">${cabecalho}</div><div class="cal-grid" style="margin-top:6px">${celulas}</div>`;
 }
 
 function rdaRenderCategoria(){
