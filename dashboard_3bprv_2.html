@@ -372,14 +372,14 @@ tr:hover td{background:var(--surface)}
   <div class="tab" onclick="showTab('auditoria',this)">Auditoria</div>
 </div>
 
-<div class="kpi-bar">
+<div class="kpi-bar" id="mainKpiBar">
   <div class="kpi k-total"><div class="kpi-label">Acidentes com vítimas</div><div class="kpi-val" id="kTotal">—</div><div class="kpi-sub" id="kPeriod">—</div></div>
   <div class="kpi k-fatal"><div class="kpi-label">Vítimas fatais</div><div class="kpi-val" id="kFatal">—</div><div class="kpi-sub" id="kFatalAc">—</div></div>
   <div class="kpi k-grave"><div class="kpi-label">Vítimas graves</div><div class="kpi-val" id="kGrave">—</div><div class="kpi-sub" id="kGraveAc">—</div></div>
   <div class="kpi k-leve"><div class="kpi-label">Vítimas leves</div><div class="kpi-val" id="kLeve">—</div><div class="kpi-sub" id="kLeveAc">—</div></div>
 </div>
 
-<div class="filters">
+<div class="filters" id="mainFilters">
   <div class="fg"><div class="fl">Ano</div><select id="fAno" onchange="onAnoChange()"><option value="">Todos</option><option>2024</option><option>2025</option><option>2026</option></select></div>
   <div class="fg"><div class="fl">CIA</div><select id="fCia"><option value="">Todas</option></select></div>
   <div class="fg"><div class="fl">Pelotão</div><select id="fPelotao"><option value="">Todos</option></select></div>
@@ -532,6 +532,7 @@ tr:hover td{background:var(--surface)}
     <div class="rda-side-btn" data-view="criminal" onclick="rdaSelectView('criminal')">🔫 Criminal</div>
     <div class="rda-side-btn" data-view="canavieiro" onclick="rdaSelectView('canavieiro')">🌾 Canavieiro</div>
     <div class="rda-side-btn" data-view="pp" onclick="rdaSelectView('pp')">☣️ PP</div>
+    <div class="rda-side-btn" data-view="efetivo" onclick="rdaSelectView('efetivo')">👥 Efetivo</div>
   </div>
 
   <div class="rda-content">
@@ -573,6 +574,45 @@ tr:hover td{background:var(--surface)}
       <div class="rda-ref-info" id="rdaAtualizadoInfo" style="margin-left:auto"></div>
     </div>
     <div id="rdaCardsWrap" class="rda-loading">Carregando dados do RDA...</div>
+  </div>
+
+  <!-- ===== VIEW: Efetivo (escalas de viaturas/policiais) ===== -->
+  <div id="rdaViewEfetivo" style="display:none">
+    <div class="rda-ref-bar">
+      <div>
+        <div style="font-size:9px;color:var(--muted);text-transform:uppercase;margin-bottom:4px">Referência</div>
+        <select id="efetivoRefSelect" onchange="efetivoRender()">
+          <option value="ANUAL">Anual</option>
+          <option value="SEM1">1º Semestre</option>
+          <option value="SEM2">2º Semestre</option>
+          <option value="TRI1">1º Trimestre</option>
+          <option value="TRI2">2º Trimestre</option>
+          <option value="TRI3">3º Trimestre</option>
+          <option value="TRI4">4º Trimestre</option>
+          <option value="BIM1">1º Bimestre</option>
+          <option value="BIM2">2º Bimestre</option>
+          <option value="BIM3">3º Bimestre</option>
+          <option value="BIM4">4º Bimestre</option>
+          <option value="BIM5">5º Bimestre</option>
+          <option value="BIM6">6º Bimestre</option>
+          <option value="MES1">Janeiro</option>
+          <option value="MES2">Fevereiro</option>
+          <option value="MES3">Março</option>
+          <option value="MES4">Abril</option>
+          <option value="MES5">Maio</option>
+          <option value="MES6">Junho</option>
+          <option value="MES7">Julho</option>
+          <option value="MES8">Agosto</option>
+          <option value="MES9">Setembro</option>
+          <option value="MES10">Outubro</option>
+          <option value="MES11">Novembro</option>
+          <option value="MES12">Dezembro</option>
+        </select>
+      </div>
+      <div class="rda-ref-info" id="efetivoRefInfo">Carregando...</div>
+      <div class="rda-ref-info" id="efetivoAtualizadoInfo" style="margin-left:auto"></div>
+    </div>
+    <div id="efetivoWrap" class="rda-loading">Carregando dados de Efetivo...</div>
   </div>
 
   <!-- ===== VIEW: Comparativo por Período (conteúdo legado, não mais acessível pelo menu) ===== -->
@@ -1068,6 +1108,11 @@ function showTab(id,el){
   document.querySelectorAll('.tc').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.getElementById('tab-'+id).classList.add('active');el.classList.add('active');
+  // KPIs e filtros são dados do BOPM (sinistros) — não fazem sentido nas abas
+  // que usam outra fonte de dados (RDA), então ficam escondidos ali.
+  const semFiltrosBopm=(id==='daily'||id==='calendario');
+  document.getElementById('mainKpiBar').style.display=semFiltrosBopm?'none':'';
+  document.getElementById('mainFilters').style.display=semFiltrosBopm?'none':'';
 }
 
 // Ao entrar no Comparativo Anual, libera ano e datas para mostrar TODOS os anos.
@@ -2118,8 +2163,13 @@ function rdaSelectView(view){
   RDA_CURRENT_VIEW = view;
   document.querySelectorAll('.rda-side-btn').forEach(b=>b.classList.toggle('active', b.dataset.view===view));
 
-  const viewCategoria = document.getElementById('rdaViewCategoria');
-  viewCategoria.style.display='';
+  document.getElementById('rdaViewCategoria').style.display = (view==='efetivo')?'none':'';
+  document.getElementById('rdaViewEfetivo').style.display = (view==='efetivo')?'':'none';
+
+  if(view==='efetivo'){
+    efetivoEnsureData().then(()=>efetivoRender());
+    return;
+  }
   rdaEnsureData().then(()=>rdaRenderCategoria());
 }
 
@@ -2155,6 +2205,98 @@ function rdaFmtPct(p){
   if(p===null||p===undefined) return '--';
   const s = p>0?'+':'';
   return s + p.toFixed(2).replace('.',',') + '%';
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// EFETIVO — escalas de viaturas/policiais
+// ══════════════════════════════════════════════════════════════════════════
+let EFETIVO_DATA=null, EFETIVO_FETCH_PROMISE=null;
+const EFETIVO_CHART_IDS=['efetivoChartFuncao','efetivoChartCia','efetivoChartPelotao','efetivoChartTurno'];
+
+function efetivoEnsureData(){
+  if(EFETIVO_DATA) return Promise.resolve(EFETIVO_DATA);
+  if(EFETIVO_FETCH_PROMISE) return EFETIVO_FETCH_PROMISE;
+  document.getElementById('efetivoWrap').innerHTML='<div class="rda-loading">Carregando dados de Efetivo...</div>';
+  const url=APPS_SCRIPT_URL+'?fonte=efetivo&_t='+Date.now();
+  EFETIVO_FETCH_PROMISE=fetch(url)
+    .then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
+    .then(json=>{
+      if(!json.ok)throw new Error(json.error||'Erro na API de Efetivo');
+      EFETIVO_DATA=json;
+      return json;
+    })
+    .catch(err=>{
+      document.getElementById('efetivoWrap').innerHTML='<div class="rda-loading" style="color:var(--fatal)">❌ '+err.message+'</div>';
+      EFETIVO_FETCH_PROMISE=null;
+      throw err;
+    });
+  return EFETIVO_FETCH_PROMISE;
+}
+
+function efetivoKpiCard(label,valAtual,valRef,seta,corBoa){
+  const setaHtml=seta==='up'?'▲':(seta==='down'?'▼':'●');
+  const corSeta=corBoa?(seta==='up'?'#3fb950':(seta==='down'?'#f85149':'#8b949e')):'#8b949e';
+  return `<div class="kpi"><div class="kpi-label">${label}</div><div class="kpi-val">${valAtual.toLocaleString('pt-BR')}</div>
+    <div class="kpi-sub"><span style="color:${corSeta}">${setaHtml}</span> ${valRef.toLocaleString('pt-BR')} em 2025</div></div>`;
+}
+
+function efetivoBarChart(canvasId,titulo,dadosObj){
+  dc(canvasId);
+  const chaves=Object.keys(dadosObj).sort((a,b)=>dadosObj[b].v2026-dadosObj[a].v2026);
+  const el=document.getElementById(canvasId);
+  if(!el)return;
+  charts[canvasId]=new Chart(el,{
+    type:'bar',
+    data:{
+      labels:chaves,
+      datasets:[
+        {label:'2025',data:chaves.map(k=>dadosObj[k].v2025),backgroundColor:'#3fb95055',borderColor:'#3fb950',borderWidth:1},
+        {label:'2026',data:chaves.map(k=>dadosObj[k].v2026),backgroundColor:'#388bfd55',borderColor:'#388bfd',borderWidth:1}
+      ]
+    },
+    options:{
+      plugins:{
+        legend:{labels:{color:'#8b949e',font:{size:11},boxWidth:12}},
+        datalabels:{display:true,anchor:'end',align:'top',color:'#ffffff',font:{size:10,family:'Oswald',weight:'bold'},formatter:v=>v>0?v.toLocaleString('pt-BR'):''}
+      },
+      responsive:true,maintainAspectRatio:false,
+      scales:{x:{ticks:{color:'#8b949e',font:{size:10}},grid:{color:'#21262d'}},y:{ticks:{color:'#8b949e'},grid:{color:'#21262d'},beginAtZero:true}}
+    }
+  });
+}
+
+function efetivoRender(){
+  if(!EFETIVO_DATA)return;
+  const refKey=document.getElementById('efetivoRefSelect').value;
+  const ref=EFETIVO_DATA.referencias[refKey];
+  const wrap=document.getElementById('efetivoWrap');
+  if(!ref){wrap.innerHTML='<div class="rda-loading">Referência indisponível</div>';return;}
+
+  document.getElementById('efetivoRefInfo').innerHTML=
+    'Período: <b>'+ref.inicio+'</b> a <b>'+ref.fim+'</b> &nbsp;·&nbsp; Dias decorridos: <b>'+ref.diasDecorridos+'</b> de <b>'+ref.diasTotais+'</b>';
+  document.getElementById('efetivoAtualizadoInfo').textContent=
+    EFETIVO_DATA.atualizadoEm?('Atualizado em: '+new Date(EFETIVO_DATA.atualizadoEm).toLocaleString('pt-BR')):'';
+
+  wrap.innerHTML=`
+    <div class="kpi-bar" style="margin-bottom:14px">
+      ${efetivoKpiCard('Efetivo empregado (tendência)',ref.total.tendencia,ref.total.v2025,ref.total.seta,true)}
+      ${efetivoKpiCard('Viaturas empregadas (tendência)',ref.viaturas.tendencia,ref.viaturas.v2025,ref.viaturas.seta,true)}
+      <div class="kpi"><div class="kpi-label">Combustível (litros)</div><div class="kpi-val">${Math.round(ref.litros.v2026).toLocaleString('pt-BR')}</div><div class="kpi-sub">${Math.round(ref.litros.v2025).toLocaleString('pt-BR')} em 2025</div></div>
+      <div class="kpi"><div class="kpi-label">Combustível (R$)</div><div class="kpi-val">R$ ${Math.round(ref.valor.v2026).toLocaleString('pt-BR')}</div><div class="kpi-sub">R$ ${Math.round(ref.valor.v2025).toLocaleString('pt-BR')} em 2025</div></div>
+    </div>
+    <div class="g2">
+      <div class="card"><div class="ct">efetivo por função</div><div class="cs">2025 vs 2026 (soma no período)</div><div class="cwl"><canvas id="efetivoChartFuncao"></canvas></div></div>
+      <div class="card"><div class="ct">efetivo por cia</div><div class="cs">2025 vs 2026 (soma no período)</div><div class="cwl"><canvas id="efetivoChartCia"></canvas></div></div>
+    </div>
+    <div class="g2">
+      <div class="card"><div class="ct">efetivo por pelotão</div><div class="cs">2025 vs 2026 (soma no período)</div><div class="cwl"><canvas id="efetivoChartPelotao"></canvas></div></div>
+      <div class="card"><div class="ct">efetivo por turno</div><div class="cs">2025 vs 2026 (soma no período)</div><div class="cwl"><canvas id="efetivoChartTurno"></canvas></div></div>
+    </div>`;
+
+  efetivoBarChart('efetivoChartFuncao','Por Função',ref.porFuncao);
+  efetivoBarChart('efetivoChartCia','Por CIA',ref.porCia);
+  efetivoBarChart('efetivoChartPelotao','Por Pelotão',ref.porPelotao);
+  efetivoBarChart('efetivoChartTurno','Por Turno',ref.porTurno);
 }
 
 // ══════════════════════════════════════════════════════════════════════════
