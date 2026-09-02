@@ -2278,12 +2278,6 @@ function efetivoRender(){
     EFETIVO_DATA.atualizadoEm?('Atualizado em: '+new Date(EFETIVO_DATA.atualizadoEm).toLocaleString('pt-BR')):'';
 
   wrap.innerHTML=`
-    <div class="kpi-bar" style="margin-bottom:14px">
-      ${efetivoKpiCard('Efetivo empregado (tendência)',ref.total.tendencia,ref.total.v2025,ref.total.seta,true)}
-      ${efetivoKpiCard('Viaturas empregadas (tendência)',ref.viaturas.tendencia,ref.viaturas.v2025,ref.viaturas.seta,true)}
-      <div class="kpi"><div class="kpi-label">Combustível (litros)</div><div class="kpi-val">${Math.round(ref.litros.v2026).toLocaleString('pt-BR')}</div><div class="kpi-sub">${Math.round(ref.litros.v2025).toLocaleString('pt-BR')} em 2025</div></div>
-      <div class="kpi"><div class="kpi-label">Combustível (R$)</div><div class="kpi-val">R$ ${Math.round(ref.valor.v2026).toLocaleString('pt-BR')}</div><div class="kpi-sub">R$ ${Math.round(ref.valor.v2025).toLocaleString('pt-BR')} em 2025</div></div>
-    </div>
     <div class="g2">
       <div class="card"><div class="ct">efetivo por função</div><div class="cs">2025 vs 2026 (soma no período)</div><div class="cwl"><canvas id="efetivoChartFuncao"></canvas></div></div>
       <div class="card"><div class="ct">efetivo por cia</div><div class="cs">2025 vs 2026 (soma no período)</div><div class="cwl"><canvas id="efetivoChartCia"></canvas></div></div>
