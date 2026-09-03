@@ -2292,12 +2292,18 @@ function efetivoRender(){
     <div class="g2">
       <div class="card"><div class="ct">efetivo médio por cia</div><div class="cs">Pessoas/dia · 2025 vs 2026</div><div class="cwl"><canvas id="efetivoChartCia"></canvas></div></div>
       <div class="card"><div class="ct">evolução mensal do efetivo</div><div class="cs">Pessoas/dia · últimos 12 meses · 2025 vs 2026</div><div class="cwl"><canvas id="efetivoChartEvolucao"></canvas></div></div>
+    </div>
+    <div class="g2">
+      <div class="card"><div class="ct">evolução mensal de viaturas</div><div class="cs">Viaturas/dia · últimos 12 meses · 2025 vs 2026</div><div class="cwl"><canvas id="efetivoChartEvolucaoViaturas"></canvas></div></div>
+      <div class="card"><div class="ct">evolução — patrulha, cgp e dejem</div><div class="cs">Pessoas/dia · últimos 12 meses (ano corrente)</div><div class="cwl"><canvas id="efetivoChartEvolucaoFuncoes"></canvas></div></div>
     </div>`;
 
   efetivoBarChart('efetivoChartFuncao','Por Função',ref.porFuncao);
   efetivoBarChart('efetivoChartCia','Por CIA',ref.porCia);
   efetivoBarChart('efetivoChartTurno','Por Turno',ref.porTurno);
   efetivoChartEvolucaoMensal(EFETIVO_DATA.evolucaoMensal||{});
+  efetivoChartEvolucaoAno('efetivoChartEvolucaoViaturas',EFETIVO_DATA.evolucaoMensalViaturas||{});
+  efetivoChartEvolucaoFuncoes(EFETIVO_DATA.evolucaoMensalFuncao||{});
 }
 
 const EF_MESES_CAP=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
@@ -2314,9 +2320,11 @@ function efetivoJanela12Meses(anoFinal,mesFinal){
   return arr;
 }
 
-function efetivoChartEvolucaoMensal(evolucaoMensal){
-  dc('efetivoChartEvolucao');
-  const el=document.getElementById('efetivoChartEvolucao');
+// Gráfico de linha "2025 vs 2026" na mesma janela de 12 meses — reaproveitado
+// tanto pro efetivo total quanto pra viaturas empregadas.
+function efetivoChartEvolucaoAno(canvasId,evolucaoMensal){
+  dc(canvasId);
+  const el=document.getElementById(canvasId);
   if(!el)return;
   const chaves=Object.keys(evolucaoMensal).sort();
   if(!chaves.length)return;
@@ -2332,7 +2340,7 @@ function efetivoChartEvolucaoMensal(evolucaoMensal){
   }
   const fmt=v=>v.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
 
-  charts['efetivoChartEvolucao']=new Chart(el,{
+  charts[canvasId]=new Chart(el,{
     type:'line',
     data:{labels:labels,datasets:[
       {label:'2025',data:valoresAno(2025),borderColor:'#3fb950',backgroundColor:'#3fb95033',tension:.3,fill:false,pointRadius:3,spanGaps:false},
@@ -2342,6 +2350,52 @@ function efetivoChartEvolucaoMensal(evolucaoMensal){
       plugins:{
         legend:{labels:{color:'#8b949e',font:{size:11},boxWidth:12}},
         datalabels:{display:true,align:'top',anchor:'end',color:'#ffffff',font:{size:10,family:'Oswald',weight:'bold'},formatter:v=>v!=null?fmt(v):''}
+      },
+      responsive:true,maintainAspectRatio:false,
+      scales:{x:{ticks:{color:'#8b949e',font:{size:10}},grid:{color:'#21262d'}},y:{ticks:{color:'#8b949e'},grid:{color:'#21262d'},beginAtZero:true}}
+    }
+  });
+}
+function efetivoChartEvolucaoMensal(evolucaoMensal){ efetivoChartEvolucaoAno('efetivoChartEvolucao',evolucaoMensal); }
+
+// Gráfico com uma linha por Função (Patrulha/CGP/Dejem), janela única de 12
+// meses (sem separar por ano) — como são várias linhas já, comparar 2025 vs
+// 2026 ao mesmo tempo ficaria poluído demais.
+function efetivoChartEvolucaoFuncoes(evolucaoMensalFuncao){
+  dc('efetivoChartEvolucaoFuncoes');
+  const el=document.getElementById('efetivoChartEvolucaoFuncoes');
+  if(!el)return;
+  const funcoes=Object.keys(evolucaoMensalFuncao);
+  if(!funcoes.length)return;
+  const todasChaves=new Set();
+  funcoes.forEach(f=>Object.keys(evolucaoMensalFuncao[f]).forEach(k=>todasChaves.add(k)));
+  const chaves=[...todasChaves].sort();
+  if(!chaves.length)return;
+  const ultima=chaves[chaves.length-1];
+  const [anoRef,mesRef]=ultima.split('-').map(Number);
+  const janela=efetivoJanela12Meses(anoRef,mesRef);
+  const labels=janela.map(j=>EF_MESES_CAP[j.mes-1]+'/'+String(j.ano).slice(2));
+  const cores=['#f0a830','#a371f7','#f85149'];
+  const fmt=v=>v.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
+
+  const datasets=funcoes.map((f,i)=>({
+    label:f,
+    data:janela.map(j=>{
+      const chave=j.ano+'-'+String(j.mes).padStart(2,'0');
+      const v=evolucaoMensalFuncao[f][chave];
+      return v!=null?v:null;
+    }),
+    borderColor:cores[i%cores.length],backgroundColor:cores[i%cores.length]+'33',
+    tension:.3,fill:false,pointRadius:3,spanGaps:false
+  }));
+
+  charts['efetivoChartEvolucaoFuncoes']=new Chart(el,{
+    type:'line',
+    data:{labels:labels,datasets:datasets},
+    options:{
+      plugins:{
+        legend:{labels:{color:'#8b949e',font:{size:11},boxWidth:12}},
+        datalabels:{display:true,align:'top',anchor:'end',color:'#ffffff',font:{size:9,family:'Oswald',weight:'bold'},formatter:v=>v!=null?fmt(v):''}
       },
       responsive:true,maintainAspectRatio:false,
       scales:{x:{ticks:{color:'#8b949e',font:{size:10}},grid:{color:'#21262d'}},y:{ticks:{color:'#8b949e'},grid:{color:'#21262d'},beginAtZero:true}}
