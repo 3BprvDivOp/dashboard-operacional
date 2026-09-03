@@ -2281,23 +2281,72 @@ function efetivoRender(){
 
   wrap.innerHTML=`
     <div class="kpi-bar" style="margin-bottom:14px">
-      ${efetivoKpiCard('Efetivo médio (por dia)',ref.total.v2026,ref.total.v2025,ref.total.seta)}
-      ${efetivoKpiCard('Viaturas empregadas (por dia)',ref.viaturas.v2026,ref.viaturas.v2025,ref.viaturas.seta)}
-      ${efetivoKpiCard('Bases operando c/ policial (Bop+PCO, por dia)',ref.bases.v2026,ref.bases.v2025,ref.bases.seta)}
+      ${efetivoKpiCard('Efetivo médio empregado — pessoas/dia',ref.total.v2026,ref.total.v2025,ref.total.seta)}
+      ${efetivoKpiCard('Viaturas médias empregadas — viaturas/dia',ref.viaturas.v2026,ref.viaturas.v2025,ref.viaturas.seta)}
+      ${efetivoKpiCard('Bases operando c/ policial (Bop+PCO) — postos/dia',ref.bases.v2026,ref.bases.v2025,ref.bases.seta)}
     </div>
     <div class="g2">
-      <div class="card"><div class="ct">efetivo por função</div><div class="cs">2025 vs 2026 · média diária no período</div><div class="cwl"><canvas id="efetivoChartFuncao"></canvas></div></div>
-      <div class="card"><div class="ct">efetivo por cia</div><div class="cs">2025 vs 2026 · média diária no período</div><div class="cwl"><canvas id="efetivoChartCia"></canvas></div></div>
+      <div class="card"><div class="ct">efetivo médio por função</div><div class="cs">Pessoas/dia · 2025 vs 2026</div><div class="cwl"><canvas id="efetivoChartFuncao"></canvas></div></div>
+      <div class="card"><div class="ct">efetivo médio por turno</div><div class="cs">Pessoas/dia · 2025 vs 2026</div><div class="cwl"><canvas id="efetivoChartTurno"></canvas></div></div>
     </div>
     <div class="g2">
-      <div class="card"><div class="ct">efetivo por pelotão</div><div class="cs">2025 vs 2026 · média diária no período</div><div class="cwl"><canvas id="efetivoChartPelotao"></canvas></div></div>
-      <div class="card"><div class="ct">efetivo por turno</div><div class="cs">2025 vs 2026 · média diária no período</div><div class="cwl"><canvas id="efetivoChartTurno"></canvas></div></div>
+      <div class="card"><div class="ct">efetivo médio por cia</div><div class="cs">Pessoas/dia · 2025 vs 2026</div><div class="cwl"><canvas id="efetivoChartCia"></canvas></div></div>
+      <div class="card"><div class="ct">evolução mensal do efetivo</div><div class="cs">Pessoas/dia · últimos 12 meses · 2025 vs 2026</div><div class="cwl"><canvas id="efetivoChartEvolucao"></canvas></div></div>
     </div>`;
 
   efetivoBarChart('efetivoChartFuncao','Por Função',ref.porFuncao);
   efetivoBarChart('efetivoChartCia','Por CIA',ref.porCia);
-  efetivoBarChart('efetivoChartPelotao','Por Pelotão',ref.porPelotao);
   efetivoBarChart('efetivoChartTurno','Por Turno',ref.porTurno);
+  efetivoChartEvolucaoMensal(EFETIVO_DATA.evolucaoMensal||{});
+}
+
+const EF_MESES_CAP=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+// Janela de 12 meses terminando em (anoFinal, mesFinal) — mesmo princípio do
+// gráfico de evolução de acidentes: cada linha (2025/2026) é seu próprio
+// ciclo de 12 meses, alinhados pela posição (não pelo ano real de cada ponto).
+function efetivoJanela12Meses(anoFinal,mesFinal){
+  const arr=[];
+  for(let i=11;i>=0;i--){
+    const d=new Date(anoFinal,mesFinal-1-i,1);
+    arr.push({ano:d.getFullYear(),mes:d.getMonth()+1});
+  }
+  return arr;
+}
+
+function efetivoChartEvolucaoMensal(evolucaoMensal){
+  dc('efetivoChartEvolucao');
+  const el=document.getElementById('efetivoChartEvolucao');
+  if(!el)return;
+  const chaves=Object.keys(evolucaoMensal).sort();
+  if(!chaves.length)return;
+  const ultima=chaves[chaves.length-1];
+  const [anoRef,mesRef]=ultima.split('-').map(Number);
+  const labels=efetivoJanela12Meses(anoRef,mesRef).map(j=>EF_MESES_CAP[j.mes-1]);
+
+  function valoresAno(anoFinal){
+    return efetivoJanela12Meses(anoFinal,mesRef).map(j=>{
+      const chave=j.ano+'-'+String(j.mes).padStart(2,'0');
+      return evolucaoMensal[chave]!=null?evolucaoMensal[chave]:null;
+    });
+  }
+  const fmt=v=>v.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
+
+  charts['efetivoChartEvolucao']=new Chart(el,{
+    type:'line',
+    data:{labels:labels,datasets:[
+      {label:'2025',data:valoresAno(2025),borderColor:'#3fb950',backgroundColor:'#3fb95033',tension:.3,fill:false,pointRadius:3,spanGaps:false},
+      {label:'2026',data:valoresAno(2026),borderColor:'#388bfd',backgroundColor:'#388bfd33',tension:.3,fill:false,pointRadius:3,spanGaps:false}
+    ]},
+    options:{
+      plugins:{
+        legend:{labels:{color:'#8b949e',font:{size:11},boxWidth:12}},
+        datalabels:{display:true,align:'top',anchor:'end',color:'#ffffff',font:{size:10,family:'Oswald',weight:'bold'},formatter:v=>v!=null?fmt(v):''}
+      },
+      responsive:true,maintainAspectRatio:false,
+      scales:{x:{ticks:{color:'#8b949e',font:{size:10}},grid:{color:'#21262d'}},y:{ticks:{color:'#8b949e'},grid:{color:'#21262d'},beginAtZero:true}}
+    }
+  });
 }
 
 // ══════════════════════════════════════════════════════════════════════════
