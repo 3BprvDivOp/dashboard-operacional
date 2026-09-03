@@ -2233,11 +2233,12 @@ function efetivoEnsureData(){
   return EFETIVO_FETCH_PROMISE;
 }
 
-function efetivoKpiCard(label,valAtual,valRef,seta,corBoa){
+function efetivoKpiCard(label,valAtual,valRef,seta){
   const setaHtml=seta==='up'?'▲':(seta==='down'?'▼':'●');
-  const corSeta=corBoa?(seta==='up'?'#3fb950':(seta==='down'?'#f85149':'#8b949e')):'#8b949e';
-  return `<div class="kpi"><div class="kpi-label">${label}</div><div class="kpi-val">${valAtual.toLocaleString('pt-BR')}</div>
-    <div class="kpi-sub"><span style="color:${corSeta}">${setaHtml}</span> ${valRef.toLocaleString('pt-BR')} em 2025</div></div>`;
+  const corSeta=seta==='up'?'#3fb950':(seta==='down'?'#f85149':'#8b949e');
+  const fmt=v=>v.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
+  return `<div class="kpi"><div class="kpi-label">${label}</div><div class="kpi-val">${fmt(valAtual)}</div>
+    <div class="kpi-sub"><span style="color:${corSeta}">${setaHtml}</span> ${fmt(valRef)} em 2025</div></div>`;
 }
 
 function efetivoBarChart(canvasId,titulo,dadosObj){
@@ -2245,6 +2246,7 @@ function efetivoBarChart(canvasId,titulo,dadosObj){
   const chaves=Object.keys(dadosObj).sort((a,b)=>dadosObj[b].v2026-dadosObj[a].v2026);
   const el=document.getElementById(canvasId);
   if(!el)return;
+  const fmt=v=>v.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
   charts[canvasId]=new Chart(el,{
     type:'bar',
     data:{
@@ -2257,7 +2259,7 @@ function efetivoBarChart(canvasId,titulo,dadosObj){
     options:{
       plugins:{
         legend:{labels:{color:'#8b949e',font:{size:11},boxWidth:12}},
-        datalabels:{display:true,anchor:'end',align:'top',color:'#ffffff',font:{size:10,family:'Oswald',weight:'bold'},formatter:v=>v>0?v.toLocaleString('pt-BR'):''}
+        datalabels:{display:true,anchor:'end',align:'top',color:'#ffffff',font:{size:10,family:'Oswald',weight:'bold'},formatter:v=>v>0?fmt(v):''}
       },
       responsive:true,maintainAspectRatio:false,
       scales:{x:{ticks:{color:'#8b949e',font:{size:10}},grid:{color:'#21262d'}},y:{ticks:{color:'#8b949e'},grid:{color:'#21262d'},beginAtZero:true}}
@@ -2278,13 +2280,18 @@ function efetivoRender(){
     EFETIVO_DATA.atualizadoEm?('Atualizado em: '+new Date(EFETIVO_DATA.atualizadoEm).toLocaleString('pt-BR')):'';
 
   wrap.innerHTML=`
-    <div class="g2">
-      <div class="card"><div class="ct">efetivo por função</div><div class="cs">2025 vs 2026 (soma no período)</div><div class="cwl"><canvas id="efetivoChartFuncao"></canvas></div></div>
-      <div class="card"><div class="ct">efetivo por cia</div><div class="cs">2025 vs 2026 (soma no período)</div><div class="cwl"><canvas id="efetivoChartCia"></canvas></div></div>
+    <div class="kpi-bar" style="margin-bottom:14px">
+      ${efetivoKpiCard('Efetivo médio (por dia)',ref.total.v2026,ref.total.v2025,ref.total.seta)}
+      ${efetivoKpiCard('Viaturas empregadas (por dia)',ref.viaturas.v2026,ref.viaturas.v2025,ref.viaturas.seta)}
+      ${efetivoKpiCard('Bases operando c/ policial (Bop+PCO, por dia)',ref.bases.v2026,ref.bases.v2025,ref.bases.seta)}
     </div>
     <div class="g2">
-      <div class="card"><div class="ct">efetivo por pelotão</div><div class="cs">2025 vs 2026 (soma no período)</div><div class="cwl"><canvas id="efetivoChartPelotao"></canvas></div></div>
-      <div class="card"><div class="ct">efetivo por turno</div><div class="cs">2025 vs 2026 (soma no período)</div><div class="cwl"><canvas id="efetivoChartTurno"></canvas></div></div>
+      <div class="card"><div class="ct">efetivo por função</div><div class="cs">2025 vs 2026 · média diária no período</div><div class="cwl"><canvas id="efetivoChartFuncao"></canvas></div></div>
+      <div class="card"><div class="ct">efetivo por cia</div><div class="cs">2025 vs 2026 · média diária no período</div><div class="cwl"><canvas id="efetivoChartCia"></canvas></div></div>
+    </div>
+    <div class="g2">
+      <div class="card"><div class="ct">efetivo por pelotão</div><div class="cs">2025 vs 2026 · média diária no período</div><div class="cwl"><canvas id="efetivoChartPelotao"></canvas></div></div>
+      <div class="card"><div class="ct">efetivo por turno</div><div class="cs">2025 vs 2026 · média diária no período</div><div class="cwl"><canvas id="efetivoChartTurno"></canvas></div></div>
     </div>`;
 
   efetivoBarChart('efetivoChartFuncao','Por Função',ref.porFuncao);
