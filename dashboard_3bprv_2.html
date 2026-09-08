@@ -2322,7 +2322,8 @@ function efetivoJanela12Meses(anoFinal,mesFinal){
 
 // Gráfico de linha "2025 vs 2026" na mesma janela de 12 meses — reaproveitado
 // tanto pro efetivo total quanto pra viaturas empregadas.
-function efetivoChartEvolucaoAno(canvasId,evolucaoMensal){
+function efetivoChartEvolucaoAno(canvasId,evolucaoMensal,pos2025,pos2026){
+  pos2025=pos2025||'top';pos2026=pos2026||'bottom';
   dc(canvasId);
   const el=document.getElementById(canvasId);
   if(!el)return;
@@ -2344,9 +2345,9 @@ function efetivoChartEvolucaoAno(canvasId,evolucaoMensal){
     type:'line',
     data:{labels:labels,datasets:[
       {label:'2025',data:valoresAno(2025),borderColor:'#3fb950',backgroundColor:'#3fb95033',tension:.3,fill:false,pointRadius:3,spanGaps:false,
-        datalabels:{align:'top',anchor:'end',offset:4}},
+        datalabels:{align:pos2025,anchor:'end',offset:4}},
       {label:'2026',data:valoresAno(2026),borderColor:'#388bfd',backgroundColor:'#388bfd33',tension:.3,fill:false,pointRadius:3,spanGaps:false,
-        datalabels:{align:'bottom',anchor:'end',offset:4}}
+        datalabels:{align:pos2026,anchor:'end',offset:4}}
     ]},
     options:{
       plugins:{
@@ -2361,7 +2362,7 @@ function efetivoChartEvolucaoAno(canvasId,evolucaoMensal){
     }
   });
 }
-function efetivoChartEvolucaoMensal(evolucaoMensal){ efetivoChartEvolucaoAno('efetivoChartEvolucao',evolucaoMensal); }
+function efetivoChartEvolucaoMensal(evolucaoMensal){ efetivoChartEvolucaoAno('efetivoChartEvolucao',evolucaoMensal,'bottom','top'); }
 
 // Gráfico com uma linha por Função (Patrulha/CGP/Dejem), janela única de 12
 // meses (sem separar por ano) — como são várias linhas já, comparar 2025 vs
@@ -2381,7 +2382,7 @@ function efetivoChartEvolucaoFuncoes(evolucaoMensalFuncao){
   const janela=efetivoJanela12Meses(anoRef,mesRef);
   const labels=janela.map(j=>EF_MESES_CAP[j.mes-1]+'/'+String(j.ano).slice(2));
   const cores=['#f0a830','#a371f7','#f85149'];
-  const alinhamentos=['top','bottom','top']; // evita rótulos de linhas próximas se sobreporem
+  const alinhamentos=['top','top','top']; // Patrulha, CGP e Dejem todos em cima (só CGP mudou, por pedido)
   const fmt=v=>v.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
 
   const datasets=funcoes.map((f,i)=>({
