@@ -2343,13 +2343,18 @@ function efetivoChartEvolucaoAno(canvasId,evolucaoMensal){
   charts[canvasId]=new Chart(el,{
     type:'line',
     data:{labels:labels,datasets:[
-      {label:'2025',data:valoresAno(2025),borderColor:'#3fb950',backgroundColor:'#3fb95033',tension:.3,fill:false,pointRadius:3,spanGaps:false},
-      {label:'2026',data:valoresAno(2026),borderColor:'#388bfd',backgroundColor:'#388bfd33',tension:.3,fill:false,pointRadius:3,spanGaps:false}
+      {label:'2025',data:valoresAno(2025),borderColor:'#3fb950',backgroundColor:'#3fb95033',tension:.3,fill:false,pointRadius:3,spanGaps:false,
+        datalabels:{align:'top',anchor:'end',offset:4}},
+      {label:'2026',data:valoresAno(2026),borderColor:'#388bfd',backgroundColor:'#388bfd33',tension:.3,fill:false,pointRadius:3,spanGaps:false,
+        datalabels:{align:'bottom',anchor:'end',offset:4}}
     ]},
     options:{
       plugins:{
         legend:{labels:{color:'#8b949e',font:{size:11},boxWidth:12}},
-        datalabels:{display:true,align:'top',anchor:'end',color:'#ffffff',font:{size:10,family:'Oswald',weight:'bold'},formatter:v=>v!=null?fmt(v):''}
+        // align/anchor de cada linha vêm do dataset acima (2025 em cima, 2026
+        // embaixo) — evita os dois números se sobreporem quando as linhas
+        // ficam muito próximas.
+        datalabels:{display:true,color:'#ffffff',font:{size:10,family:'Oswald',weight:'bold'},formatter:v=>v!=null?fmt(v):''}
       },
       responsive:true,maintainAspectRatio:false,
       scales:{x:{ticks:{color:'#8b949e',font:{size:10}},grid:{color:'#21262d'}},y:{ticks:{color:'#8b949e'},grid:{color:'#21262d'},beginAtZero:true}}
@@ -2376,6 +2381,7 @@ function efetivoChartEvolucaoFuncoes(evolucaoMensalFuncao){
   const janela=efetivoJanela12Meses(anoRef,mesRef);
   const labels=janela.map(j=>EF_MESES_CAP[j.mes-1]+'/'+String(j.ano).slice(2));
   const cores=['#f0a830','#a371f7','#f85149'];
+  const alinhamentos=['top','bottom','top']; // evita rótulos de linhas próximas se sobreporem
   const fmt=v=>v.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
 
   const datasets=funcoes.map((f,i)=>({
@@ -2386,7 +2392,8 @@ function efetivoChartEvolucaoFuncoes(evolucaoMensalFuncao){
       return v!=null?v:null;
     }),
     borderColor:cores[i%cores.length],backgroundColor:cores[i%cores.length]+'33',
-    tension:.3,fill:false,pointRadius:3,spanGaps:false
+    tension:.3,fill:false,pointRadius:3,spanGaps:false,
+    datalabels:{align:alinhamentos[i%alinhamentos.length],anchor:'end',offset:4}
   }));
 
   charts['efetivoChartEvolucaoFuncoes']=new Chart(el,{
@@ -2395,7 +2402,7 @@ function efetivoChartEvolucaoFuncoes(evolucaoMensalFuncao){
     options:{
       plugins:{
         legend:{labels:{color:'#8b949e',font:{size:11},boxWidth:12}},
-        datalabels:{display:true,align:'top',anchor:'end',color:'#ffffff',font:{size:9,family:'Oswald',weight:'bold'},formatter:v=>v!=null?fmt(v):''}
+        datalabels:{display:true,color:'#ffffff',font:{size:9,family:'Oswald',weight:'bold'},formatter:v=>v!=null?fmt(v):''}
       },
       responsive:true,maintainAspectRatio:false,
       scales:{x:{ticks:{color:'#8b949e',font:{size:10}},grid:{color:'#21262d'}},y:{ticks:{color:'#8b949e'},grid:{color:'#21262d'},beginAtZero:true}}
