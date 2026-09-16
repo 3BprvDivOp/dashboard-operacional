@@ -533,6 +533,7 @@ tr:hover td{background:var(--surface)}
     <div class="rda-side-btn" data-view="canavieiro" onclick="rdaSelectView('canavieiro')">🌾 Canavieiro</div>
     <div class="rda-side-btn" data-view="pp" onclick="rdaSelectView('pp')">☣️ PP</div>
     <div class="rda-side-btn" data-view="efetivo" onclick="rdaSelectView('efetivo')">👥 Efetivo</div>
+    <div class="rda-side-btn" data-view="acoes" onclick="rdaSelectView('acoes')">🎯 Ações</div>
   </div>
 
   <div class="rda-content">
@@ -613,6 +614,15 @@ tr:hover td{background:var(--surface)}
       <div class="rda-ref-info" id="efetivoAtualizadoInfo" style="margin-left:auto"></div>
     </div>
     <div id="efetivoWrap" class="rda-loading">Carregando dados de Efetivo...</div>
+  </div>
+
+  <!-- ===== VIEW: Ações (ações realizadas pelas equipes — Patrulha, Dejem, CGP etc.) ===== -->
+  <div id="rdaViewAcoes" style="display:none">
+    <div class="card" style="padding:40px;text-align:center">
+      <div class="ct">ações</div>
+      <div class="cs" style="margin-top:8px">Em construção</div>
+      <div style="color:#8b949e;font-size:13px;margin-top:14px">Aguardando definição da fonte de dados.</div>
+    </div>
   </div>
 
   <!-- ===== VIEW: Comparativo por Período (conteúdo legado, não mais acessível pelo menu) ===== -->
@@ -2163,8 +2173,11 @@ function rdaSelectView(view){
   RDA_CURRENT_VIEW = view;
   document.querySelectorAll('.rda-side-btn').forEach(b=>b.classList.toggle('active', b.dataset.view===view));
 
-  document.getElementById('rdaViewCategoria').style.display = (view==='efetivo')?'none':'';
+  document.getElementById('rdaViewCategoria').style.display = (view==='efetivo'||view==='acoes')?'none':'';
   document.getElementById('rdaViewEfetivo').style.display = (view==='efetivo')?'':'none';
+  document.getElementById('rdaViewAcoes').style.display = (view==='acoes')?'':'none';
+
+  if(view==='acoes')return; // ainda sem fonte de dados — só mostra o placeholder
 
   if(view==='efetivo'){
     efetivoEnsureData().then(()=>efetivoRender());
