@@ -2865,7 +2865,6 @@ function svgRodovia(hw,acidentes){
     svg+=`<line x1="${x}" y1="${yRoad-26}" x2="${x}" y2="${yRoad+16}" stroke="#30363d" stroke-width="1" stroke-dasharray="2,2"/>`;
     svg+=`<line x1="${x}" y1="${yRoad-15}" x2="${x}" y2="${yRoad-26}" stroke="#8b949e" stroke-width="1.2"/>`;
     svg+=`<text x="${x}" y="${yRoad-29}" text-anchor="start" fill="#c9d1d9" font-size="8.5" transform="rotate(-35 ${x} ${yRoad-29})">${m.label} · km ${m.km}</text>`;
-    svg+=`<text x="${x}" y="${yRoad+27}" text-anchor="middle" fill="#f0a830" font-size="8.5" font-weight="bold">${m.km}</text>`;
   });
 
   // Pedágio — ícone de cancela (2 colunas + barra), em laranja, acima da pista,
@@ -2897,22 +2896,35 @@ function svgRodovia(hw,acidentes){
   return svg;
 }
 
+let diagGravidadeAtual='fatal'; // padrão: só fatais. Pode trocar pelo seletor da própria aba do diagrama.
+function onDiagGravidadeChange(v){ diagGravidadeAtual=v; renderDiagrama(); }
+
 function renderDiagrama(){
   const wrap=document.getElementById('diagramaContainer');
   if(!wrap)return;
   const cia=document.getElementById('fCia').value||'1ª CIA';
   const lista=RODOVIAS_DIAGRAMA[cia];
+  const g=diagGravidadeAtual;
+  const opt=(v,txt)=>`<option value="${v}" ${g===v?'selected':''}>${txt}</option>`;
+  const descGrav={fatal:'Somente vítimas fatais',grave:'Somente vítimas graves',leve:'Somente vítimas leves','':'Todas as gravidades'}[g];
+  const corPonto={fatal:'#f85149',grave:'#ff8c00',leve:'#d29922'};
 
   let html=`<div class="card" style="padding:16px 20px;margin-bottom:14px">
     <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
       <div class="ct" style="margin:0">diagrama de rodovias — ${cia}</div>
-      <button class="map-btn" style="margin-left:auto" onclick="setMapaView('mapa')">🗺 Voltar pro Mapa</button>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+        <span style="font-size:10px;color:#8b949e;text-transform:uppercase">Gravidade</span>
+        <select onchange="onDiagGravidadeChange(this.value)" style="background:#0d1117;border:1px solid #30363d;color:#e6edf3;border-radius:6px;padding:5px 10px;font-family:'Oswald',sans-serif">
+          ${opt('fatal','Fatal')}${opt('grave','Grave')}${opt('leve','Leve')}${opt('','Todas')}
+        </select>
+      </div>
+      <button class="map-btn" onclick="setMapaView('mapa')">🗺 Voltar pro Mapa</button>
     </div>
-    <div class="cs" style="margin-top:4px">Sinistros posicionados pelo KM real · respeita os filtros da barra acima</div>
+    <div class="cs" style="margin-top:4px">${descGrav} · posicionadas pelo KM real · respeita os demais filtros da barra acima</div>
     <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:11px;color:#8b949e">
-      <span><span style="display:inline-block;width:9px;height:9px;background:#f85149;border-radius:50%;margin-right:5px;vertical-align:middle"></span>Fatal</span>
-      <span><span style="display:inline-block;width:9px;height:9px;background:#ff8c00;border-radius:50%;margin-right:5px;vertical-align:middle"></span>Grave</span>
-      <span><span style="display:inline-block;width:9px;height:9px;background:#d29922;border-radius:50%;margin-right:5px;vertical-align:middle"></span>Leve</span>
+      ${g===''||g==='fatal'?`<span><span style="display:inline-block;width:9px;height:9px;background:#f85149;border-radius:50%;margin-right:5px;vertical-align:middle"></span>Fatal</span>`:''}
+      ${g===''||g==='grave'?`<span><span style="display:inline-block;width:9px;height:9px;background:#ff8c00;border-radius:50%;margin-right:5px;vertical-align:middle"></span>Grave</span>`:''}
+      ${g===''||g==='leve'?`<span><span style="display:inline-block;width:9px;height:9px;background:#d29922;border-radius:50%;margin-right:5px;vertical-align:middle"></span>Leve</span>`:''}
     </div>
   </div>`;
 
@@ -2924,6 +2936,9 @@ function renderDiagrama(){
 
   lista.forEach(hw=>{
     const acid=filteredData.filter(r=>{
+      if(g==='fatal'&&!r.TF)return false;
+      if(g==='grave'&&!r.TG)return false;
+      if(g==='leve'&&!r.TL)return false;
       if(malhaNumeroDiagrama(r.Malha)!==hw.numero)return false;
       const km=parseKmDiagrama(r.KM);
       return km!==null&&km>=hw.kmMin&&km<=hw.kmMax;
