@@ -502,6 +502,7 @@ tr:hover td{background:var(--surface)}
         <button class="map-btn" id="btnCalor" onclick="setMapMode('calor')">🔥 Calor</button>
       </div>
       <button class="map-btn" id="ciaLayerBtn" onclick="toggleCiaLayer()">🗺 Área 3BPRv</button>
+      <button class="map-btn" id="btnDiagrama" onclick="setMapaView('diagrama')">🛣 Diagrama</button>
       <div class="map-legend">
         <div class="map-legend-title">Gravidade</div>
         <div class="leg-row"><div class="leg-dot" style="background:#f85149"></div>Fatal</div>
@@ -517,6 +518,9 @@ tr:hover td{background:var(--surface)}
       </div>
     </div>
   </div>
+
+  <!-- ===== VIEW: Diagrama de Rodovias (esquemático, tipo "linha reta" com KM) ===== -->
+  <div id="diagramaContainer" style="display:none;padding:16px 0"></div>
 </div>
 
 
@@ -1104,6 +1108,7 @@ function applyAndRender(){
     return true;
   });
   renderAll();
+  if(document.getElementById('diagramaContainer')&&document.getElementById('diagramaContainer').style.display!=='none')renderDiagrama();
 }
 
 function clearFilters(){
@@ -2787,6 +2792,162 @@ function initMap() {
   markersLayer = L.layerGroup().addTo(mapInstance);
   updateMap();
   buildCiaLayer();
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// DIAGRAMA DE RODOVIAS — desenho esquemático por CIA (linha + KM real)
+// ══════════════════════════════════════════════════════════════════════════
+// Extraído da planilha "INDICADOR DOS FATAIS" (aba "1ª CIA - 2026") — geometria
+// (KM inicial/final, sentido, posição de interseções e pedágios) é fixa/manual,
+// mas os SINISTROS plotados vêm sempre ao vivo de filteredData (BOPM), pelo
+// campo KM real de cada registro. Só a 1ª CIA está pronta por enquanto.
+const RODOVIAS_DIAGRAMA = {
+  '1ª CIA': [
+    {codigo:'SP-310', numero:'310', titulo:'RODOVIA WASHINGTON LUÍS', kmMin:217, kmMax:348, dir1:'SUL', dir2:'NORTE',
+      marcos:[{km:227,label:'SP 215'},{km:235,label:'SP 318'},{km:265,label:'SPA 268/310'},{km:270,label:'SP 255'},{km:288,label:'SP 331'},{km:292,label:'SP 326'},{km:321,label:'SP 319'},{km:328,label:'SP 333'},{km:346,label:'SPA 348/310'}],
+      pedagios:[217,281,345]},
+    {codigo:'SP-326', numero:'326', titulo:'BRIGADEIRO FARIA LIMA', kmMin:293, kmMax:466, dir1:'SUL', dir2:'NORTE',
+      marcos:[{km:293,label:'SP 310'},{km:300,label:'SPA 302/326'},{km:311,label:'SPA 312/326'},{km:317,label:'SPA 318/326'},{km:327,label:'SPI 328/326'},{km:337,label:'SP 333'},{km:340,label:'SP 305'},{km:356,label:'SPA 357/326'},{km:378,label:'SP 322'},{km:388,label:'SP 353'},{km:404,label:'SP 373'},{km:425,label:'SP 425'}],
+      pedagios:[306,355]},
+    {codigo:'SP-215', numero:'215', titulo:'SP 215', kmMin:131, kmMax:210, dir1:'LESTE', dir2:'OESTE',
+      marcos:[{km:146,label:'SP 310'},{km:148,label:'SPA 149/215'},{km:209,label:'SP 255'}],
+      pedagios:[]},
+    {codigo:'SP-318', numero:'318', titulo:'Thales de Lorena Peixoto Junior', kmMin:235, kmMax:280, dir1:'SUL', dir2:'NORTE',
+      marcos:[{km:235,label:'SP 310'},{km:280,label:'SP 255'}],
+      pedagios:[253]}
+  ]
+};
+
+function parseKmDiagrama(v){
+  if(v===null||v===undefined||v==='')return null;
+  const n=parseFloat(String(v).trim().replace(',','.'));
+  return isNaN(n)?null:n;
+}
+function malhaNumeroDiagrama(malhaFull){
+  if(!malhaFull)return '';
+  const p=String(malhaFull).split('/');
+  const s=(p.length>1?p[1]:malhaFull).trim();
+  return s.replace(/\D/g,'');
+}
+
+// Desenha uma rodovia: pista, sentido, KMs, interseções, pedágios (ícone
+// próprio, não mais um texto solto) e os sinistros como bolinhas coloridas
+// por gravidade, empilhando quando caem muito perto uma da outra no mesmo KM.
+function svgRodovia(hw,acidentes){
+  const W=1200,H=150,padX=55,yRoad=76;
+  const span=hw.kmMax-hw.kmMin||1;
+  const scale=(W-2*padX)/span;
+  const kmToX=km=>padX+(km-hw.kmMin)*scale;
+
+  let svg=`<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block">`;
+  svg+=`<rect x="${padX}" y="${yRoad-11}" width="${W-2*padX}" height="22" fill="#2d333b" rx="3"/>`;
+  svg+=`<line x1="${padX}" y1="${yRoad}" x2="${W-padX}" y2="${yRoad}" stroke="#f0c040" stroke-width="2" stroke-dasharray="9,7"/>`;
+  svg+=`<text x="${padX-6}" y="${yRoad+4}" text-anchor="end" fill="#8b949e" font-size="11" font-weight="bold" font-family="Oswald,sans-serif">◄ ${hw.dir1}</text>`;
+  svg+=`<text x="${W-padX+6}" y="${yRoad+4}" text-anchor="start" fill="#8b949e" font-size="11" font-weight="bold" font-family="Oswald,sans-serif">${hw.dir2} ►</text>`;
+
+  // Marcações de KM na régua — mais granular, pra dar noção de escala mesmo
+  // em trechos longos (o KM exato de cada interseção é marcado à parte, mais
+  // destacado, logo abaixo).
+  const passo=span>250?25:(span>100?10:5);
+  const kmIni=Math.ceil(hw.kmMin/passo)*passo;
+  for(let km=kmIni;km<=hw.kmMax;km+=passo){
+    const x=kmToX(km);
+    svg+=`<line x1="${x}" y1="${yRoad+11}" x2="${x}" y2="${yRoad+16}" stroke="#484f58"/>`;
+    svg+=`<text x="${x}" y="${yRoad+27}" text-anchor="middle" fill="#6e7681" font-size="8">${km}</text>`;
+  }
+  svg+=`<text x="${kmToX(hw.kmMin)}" y="${yRoad+27}" text-anchor="middle" fill="#8b949e" font-size="9" font-weight="bold">${hw.kmMin}</text>`;
+  svg+=`<text x="${kmToX(hw.kmMax)}" y="${yRoad+27}" text-anchor="middle" fill="#8b949e" font-size="9" font-weight="bold">${hw.kmMax}</text>`;
+
+  // Interseções — linha-guia da marca até a régua (pra ler o KM exato embaixo),
+  // rótulo com o KM já escrito junto, e o KM em destaque (laranja) na régua.
+  hw.marcos.forEach(m=>{
+    const x=kmToX(m.km);
+    svg+=`<line x1="${x}" y1="${yRoad-26}" x2="${x}" y2="${yRoad+16}" stroke="#30363d" stroke-width="1" stroke-dasharray="2,2"/>`;
+    svg+=`<line x1="${x}" y1="${yRoad-15}" x2="${x}" y2="${yRoad-26}" stroke="#8b949e" stroke-width="1.2"/>`;
+    svg+=`<text x="${x}" y="${yRoad-29}" text-anchor="start" fill="#c9d1d9" font-size="8.5" transform="rotate(-35 ${x} ${yRoad-29})">${m.label} · km ${m.km}</text>`;
+    svg+=`<text x="${x}" y="${yRoad+27}" text-anchor="middle" fill="#f0a830" font-size="8.5" font-weight="bold">${m.km}</text>`;
+  });
+
+  // Pedágio — ícone de cancela (2 colunas + barra), em laranja, acima da pista,
+  // com o KM exato marcado embaixo na régua também.
+  hw.pedagios.forEach(km=>{
+    const x=kmToX(km);
+    svg+=`<line x1="${x}" y1="${yRoad-38}" x2="${x}" y2="${yRoad+16}" stroke="#30363d" stroke-width="1" stroke-dasharray="2,2"/>`;
+    svg+=`<g>
+      <rect x="${x-4}" y="${yRoad-33}" width="3" height="22" fill="#f0a830"/>
+      <rect x="${x+1}" y="${yRoad-33}" width="3" height="22" fill="#f0a830"/>
+      <rect x="${x-7}" y="${yRoad-38}" width="14" height="4" fill="#f0a830" rx="1"/>
+      <title>Pedágio · km ${km}</title>
+    </g>`;
+    svg+=`<text x="${x}" y="${yRoad+27}" text-anchor="middle" fill="#f0a830" font-size="8.5" font-weight="bold">${km}</text>`;
+  });
+
+  // Sinistros — bolinha por gravidade, empilhando se caírem no mesmo pixel
+  const usados={};
+  acidentes.forEach(a=>{
+    const x=Math.round(kmToX(a.km));
+    usados[x]=usados[x]||0;
+    const dy=usados[x]*9;
+    usados[x]++;
+    const cor=a.fatal?'#f85149':(a.grave?'#ff8c00':'#d29922');
+    svg+=`<circle cx="${x}" cy="${yRoad+42+dy}" r="4" fill="${cor}" stroke="#0d1117" stroke-width="1"><title>km ${a.km}</title></circle>`;
+  });
+
+  svg+=`</svg>`;
+  return svg;
+}
+
+function renderDiagrama(){
+  const wrap=document.getElementById('diagramaContainer');
+  if(!wrap)return;
+  const cia=document.getElementById('fCia').value||'1ª CIA';
+  const lista=RODOVIAS_DIAGRAMA[cia];
+
+  let html=`<div class="card" style="padding:16px 20px;margin-bottom:14px">
+    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+      <div class="ct" style="margin:0">diagrama de rodovias — ${cia}</div>
+      <button class="map-btn" style="margin-left:auto" onclick="setMapaView('mapa')">🗺 Voltar pro Mapa</button>
+    </div>
+    <div class="cs" style="margin-top:4px">Sinistros posicionados pelo KM real · respeita os filtros da barra acima</div>
+    <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:11px;color:#8b949e">
+      <span><span style="display:inline-block;width:9px;height:9px;background:#f85149;border-radius:50%;margin-right:5px;vertical-align:middle"></span>Fatal</span>
+      <span><span style="display:inline-block;width:9px;height:9px;background:#ff8c00;border-radius:50%;margin-right:5px;vertical-align:middle"></span>Grave</span>
+      <span><span style="display:inline-block;width:9px;height:9px;background:#d29922;border-radius:50%;margin-right:5px;vertical-align:middle"></span>Leve</span>
+    </div>
+  </div>`;
+
+  if(!lista){
+    html+=`<div class="card" style="padding:40px;text-align:center"><div style="color:#8b949e;font-size:13px">Rodovias da ${cia} ainda não desenhadas — só a 1ª CIA está pronta por enquanto. Selecione "1ª CIA" no filtro pra ver o piloto.</div></div>`;
+    wrap.innerHTML=html;
+    return;
+  }
+
+  lista.forEach(hw=>{
+    const acid=filteredData.filter(r=>{
+      if(malhaNumeroDiagrama(r.Malha)!==hw.numero)return false;
+      const km=parseKmDiagrama(r.KM);
+      return km!==null&&km>=hw.kmMin&&km<=hw.kmMax;
+    }).map(r=>({km:parseKmDiagrama(r.KM),fatal:r.TF,grave:r.TG}));
+
+    html+=`<div class="card" style="padding:16px 20px;margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px">
+        <div><span style="color:#f0a830;font-weight:bold">${hw.codigo}</span> <span style="color:#8b949e">— ${hw.titulo}</span></div>
+        <div style="font-size:11px;color:#8b949e">${acid.length} sinistro${acid.length===1?'':'s'} · km ${hw.kmMin}–${hw.kmMax}</div>
+      </div>
+      <div style="margin-top:10px">${svgRodovia(hw,acid)}</div>
+    </div>`;
+  });
+
+  wrap.innerHTML=html;
+}
+
+// Alterna entre o mapa geográfico (Leaflet) e o diagrama esquemático de
+// rodovias.
+function setMapaView(view) {
+  document.getElementById('mapContainer').style.display = (view === 'mapa') ? '' : 'none';
+  document.getElementById('diagramaContainer').style.display = (view === 'diagrama') ? '' : 'none';
+  document.getElementById('btnDiagrama').classList.toggle('active', view === 'diagrama');
+  if(view==='diagrama')renderDiagrama();
 }
 
 function setMapMode(mode) {
