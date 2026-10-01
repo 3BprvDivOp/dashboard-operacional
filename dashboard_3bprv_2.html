@@ -2804,17 +2804,112 @@ function initMap() {
 const RODOVIAS_DIAGRAMA = {
   '1ª CIA': [
     {codigo:'SP-310', numero:'310', titulo:'RODOVIA WASHINGTON LUÍS', kmMin:217, kmMax:348, dir1:'SUL', dir2:'NORTE',
-      marcos:[{km:227,label:'SP 215'},{km:235,label:'SP 318'},{km:265,label:'SPA 268/310'},{km:270,label:'SP 255'},{km:288,label:'SP 331'},{km:292,label:'SP 326'},{km:321,label:'SP 319'},{km:328,label:'SP 333'},{km:346,label:'SPA 348/310'}],
+      marcos:[{km:227,label:'SP 215'},{km:288,label:'SP 331'},{km:328,label:'SP 333'},{km:346,label:'SPA 348/310'},{km:235,label:'SP 318'},{km:265,label:'SPA 268/310'},{km:292,label:'SP 326'},{km:321,label:'SP 319'}],
       pedagios:[217,281,345]},
     {codigo:'SP-326', numero:'326', titulo:'BRIGADEIRO FARIA LIMA', kmMin:293, kmMax:466, dir1:'SUL', dir2:'NORTE',
-      marcos:[{km:293,label:'SP 310'},{km:300,label:'SPA 302/326'},{km:311,label:'SPA 312/326'},{km:317,label:'SPA 318/326'},{km:327,label:'SPI 328/326'},{km:337,label:'SP 333'},{km:340,label:'SP 305'},{km:356,label:'SPA 357/326'},{km:378,label:'SP 322'},{km:388,label:'SP 353'},{km:404,label:'SP 373'},{km:425,label:'SP 425'}],
+      marcos:[{km:300,label:'SPA 302/326'},{km:311,label:'SPA 312/326'},{km:317,label:'SPA 318/326'},{km:337,label:'SP 333'},{km:340,label:'SP 305'},{km:356,label:'SPA 357/326'},{km:378,label:'SP 322'},{km:404,label:'SP 373'},{km:425,label:'SP 425'},{km:293,label:'SP 310'},{km:327,label:'SPI 328/326'},{km:388,label:'SP 353'}],
       pedagios:[306,355]},
-    {codigo:'SP-215', numero:'215', titulo:'SP 215', kmMin:131, kmMax:210, dir1:'LESTE', dir2:'OESTE',
-      marcos:[{km:146,label:'SP 310'},{km:148,label:'SPA 149/215'},{km:209,label:'SP 255'}],
+    {codigo:'SP-215', numero:'215', titulo:'SP-215', kmMin:131, kmMax:210, dir1:'LESTE', dir2:'OESTE',
+      marcos:[{km:146,label:'SP 310'},{km:209,label:'SP 255'},{km:148,label:'SPA 149/215'}],
       pedagios:[]},
     {codigo:'SP-318', numero:'318', titulo:'Thales de Lorena Peixoto Junior', kmMin:235, kmMax:280, dir1:'SUL', dir2:'NORTE',
-      marcos:[{km:235,label:'SP 310'},{km:280,label:'SP 255'}],
-      pedagios:[253]}
+      marcos:[{km:280,label:'SP 255'},{km:235,label:'SP 310'}],
+      pedagios:[253]},
+    {codigo:'SP-255', numero:'255', titulo:'SP-255', kmMin:47, kmMax:124, dir1:'NORTE', dir2:'SUL',
+      marcos:[{km:82,label:'SP 310'},{km:122,label:'SP 215'},{km:70,label:'SP 257'},{km:73,label:'SPA 074/255'},{km:76,label:'SPA 077/255'}],
+      pedagios:[116]},
+    {codigo:'SP-331', numero:'331', titulo:'Dep. Victor Maida', kmMin:1, kmMax:57, dir1:'LESTE', dir2:'OESTE',
+      marcos:[{km:1,label:'SP 310'},{km:56,label:'SP 304'}],
+      pedagios:[]},
+    {codigo:'SP-322', numero:'322', titulo:'ARMANDO SALES DE OLIVEIRA', kmMin:355, kmMax:556, dir1:'OESTE', dir2:'LESTE',
+      marcos:[{km:430,label:'SP 373'}],
+      pedagios:[361]},
+    {codigo:'SP-345', numero:'345', titulo:'Prefeito Fábio Talarico', kmMin:122, kmMax:148, dir1:'OESTE', dir2:'LESTE',
+      marcos:[],
+      pedagios:[]},
+    {codigo:'SP-351', numero:'351', titulo:'SP-351', kmMin:127, kmMax:185, dir1:'LESTE', dir2:'OESTE',
+      marcos:[{km:149,label:'SP 322'},{km:182,label:'SP 323'}],
+      pedagios:[184]},
+    {codigo:'SP-353', numero:'353', titulo:'DR Oswaldo Prudente Correa', kmMin:1, kmMax:16, dir1:'OESTE', dir2:'LESTE',
+      marcos:[],
+      pedagios:[]},
+    {codigo:'SP-373', numero:'373', titulo:'SP-373', kmMin:135, kmMax:189, dir1:'LESTE', dir2:'OESTE',
+      marcos:[{km:135,label:'SP 326'},{km:187,label:'SP 322'}],
+      pedagios:[]},
+    {codigo:'SP-425', numero:'425', titulo:'Assis Chateaubriand', kmMin:42, kmMax:157, dir1:'LESTE', dir2:'OESTE',
+      marcos:[{km:79,label:'SP 345'},{km:97,label:'SP 326'},{km:135,label:'SP 322'},{km:138,label:'SPA 138/425'}],
+      pedagios:[]},
+    {codigo:'SP-319', numero:'319', titulo:'Thirso Micali', kmMin:1, kmMax:9, dir1:'LESTE', dir2:'OESTE',
+      marcos:[{km:9,label:'SP 333'},{km:1,label:'SP 310'}],
+      pedagios:[]},
+    {codigo:'SP-333', numero:'333', titulo:'SP-333', kmMin:103, kmMax:231, dir1:'LESTE', dir2:'OESTE',
+      marcos:[{km:118,label:'SP 253'},{km:121,label:'SP 326'},{km:146,label:'SP 319'},{km:181,label:'SPA 182/333'},{km:212,label:'SP 304'},{km:139,label:'SP 323'}],
+      pedagios:[111,178]},
+    {codigo:'SP-304', numero:'304', titulo:'Dep. Leônidas P. Ferreira', kmMin:352, kmMax:406, dir1:'SUL', dir2:'NORTE',
+      marcos:[{km:379,label:'SP 321'},{km:398,label:'SP 333'},{km:362,label:'SP 331'},{km:367,label:'SP 317'}],
+      pedagios:[]},
+    {codigo:'SP-253', numero:'253', titulo:'Cunha Bueno', kmMin:204, kmMax:221, dir1:'OESTE', dir2:'LESTE',
+      marcos:[{km:221,label:'SP 333'},{km:208,label:'SPI 328/326'}],
+      pedagios:[]},
+    {codigo:'SP-305', numero:'305', titulo:'José Pizazarro', kmMin:1, kmMax:19, dir1:'LESTE', dir2:'OESTE',
+      marcos:[{km:19,label:'SP 323'},{km:1,label:'SP 326'}],
+      pedagios:[]},
+    {codigo:'SP-317', numero:'317', titulo:'Prof. Mauricio Antunes Ferraz', kmMin:1, kmMax:21, dir1:'SUL', dir2:'NORTE',
+      marcos:[{km:20,label:'SP 333'},{km:1,label:'SP 304'}],
+      pedagios:[]},
+    {codigo:'SP-321', numero:'321', titulo:'Cezário José de Castilho', kmMin:406, kmMax:414, dir1:'LESTE', dir2:'OESTE',
+      marcos:[{km:414,label:'SP 333'},{km:406,label:'SP 304'}],
+      pedagios:[]},
+    {codigo:'SP-323', numero:'323', titulo:'José Della Vechia', kmMin:1, kmMax:49, dir1:'LESTE', dir2:'OESTE',
+      marcos:[{km:1,label:'SP 333'},{km:14,label:'SP 305'}],
+      pedagios:[]},
+    {codigo:'SPA-357/326', numero:'', titulo:'PEDRO LUIS FURLAN', kmMin:1, kmMax:12, dir1:'LESTE', dir2:'OESTE',
+      marcos:[{km:1,label:'SP 326'}],
+      pedagios:[]},
+    {codigo:'SPA-268/310', numero:'', titulo:'SPA-268/310', kmMin:1, kmMax:12, dir1:'LESTE', dir2:'OESTE',
+      marcos:[{km:1,label:'SP 310'}],
+      pedagios:[]},
+    {codigo:'SPA-365/304', numero:'', titulo:'SPA-365/304', kmMin:1, kmMax:12, dir1:'LESTE', dir2:'OESTE',
+      marcos:[{km:1,label:'SP 304'}],
+      pedagios:[]},
+    {codigo:'SPA-004/257', numero:'', titulo:'SPA-004/257', kmMin:1, kmMax:13, dir1:'LESTE', dir2:'OESTE',
+      marcos:[{km:1,label:'SP 257'}],
+      pedagios:[]},
+    {codigo:'SPA-074/255', numero:'', titulo:'SPA-074/255', kmMin:1, kmMax:13, dir1:'LESTE', dir2:'OESTE',
+      marcos:[],
+      pedagios:[]},
+    {codigo:'SPA-523/322', numero:'', titulo:'SPA-523/322', kmMin:1, kmMax:13, dir1:'LESTE', dir2:'OESTE',
+      marcos:[],
+      pedagios:[]},
+    {codigo:'SPA-027/331', numero:'', titulo:'SPA-027/331', kmMin:1, kmMax:13, dir1:'LESTE', dir2:'OESTE',
+      marcos:[],
+      pedagios:[]}
+  ],
+  '2ª CIA': [
+    {codigo:'SP-310', numero:'310', titulo:'RODOVIA WASHINGTON LUÍS', kmMin:161, kmMax:217, dir1:'SUL', dir2:'NORTE',
+      marcos:[{km:171,label:'SP 127'},{km:179,label:'SP 191'},{km:206,label:'SP 225'}],
+      pedagios:[184,217]},
+    {codigo:'SP-127', numero:'127', titulo:'FAUSTO SANTOMAURO', kmMin:1, kmMax:59, dir1:'NORTE', dir2:'SUL',
+      marcos:[{km:2,label:'SP 310'},{km:41,label:'SP 308'}],
+      pedagios:[13]},
+    {codigo:'SP-191', numero:'191', titulo:'IRINEU PENTEADO', kmMin:58, kmMax:149, dir1:'OESTE', dir2:'LESTE',
+      marcos:[{km:73,label:'SP 310'},{km:98,label:'SP 308'}],
+      pedagios:[59,99]},
+    {codigo:'SP-101', numero:'101', titulo:'Jornalista Francisco A. Proença', kmMin:14, kmMax:63, dir1:'LESTE', dir2:'OESTE',
+      marcos:[{km:37,label:'SP 310'},{km:22,label:'SP 304'}],
+      pedagios:[55]},
+    {codigo:'SP-135', numero:'135', titulo:'MARGARIDA DA GRAÇA MARTINS', kmMin:8, kmMax:24, dir1:'LESTE', dir2:'OESTE',
+      marcos:[{km:16,label:'SP 304'}],
+      pedagios:[]},
+    {codigo:'SP-147', numero:'147', titulo:'DEP. LAÉRCIO CORTE', kmMin:122, kmMax:202, dir1:'LESTE', dir2:'OESTE',
+      marcos:[{km:173,label:'SP 191'},{km:202,label:'SP 304'}],
+      pedagios:[158,191]},
+    {codigo:'SP-304', numero:'304', titulo:'GERALDO DE BARROS', kmMin:146, kmMax:235, dir1:'LESTE', dir2:'OESTE',
+      marcos:[{km:197,label:'SP 191'}],
+      pedagios:[182,215]},
+    {codigo:'SP-308', numero:'308', titulo:'COMENDADOR MÁRIO DEDINI', kmMin:108, kmMax:162, dir1:'SUL', dir2:'NORTE',
+      marcos:[{km:127,label:'SP 101'},{km:137,label:'SP 306'},{km:159,label:'SP 135'},{km:160,label:'SP 304'}],
+      pedagios:[108]}
   ]
 };
 
@@ -2834,7 +2929,7 @@ function malhaNumeroDiagrama(malhaFull){
 // próprio, não mais um texto solto) e os sinistros como bolinhas coloridas
 // por gravidade, empilhando quando caem muito perto uma da outra no mesmo KM.
 function svgRodovia(hw,acidentes){
-  const W=1200,H=150,padX=55,yRoad=76;
+  const W=1200,H=230,padX=55,yRoad=150;
   const span=hw.kmMax-hw.kmMin||1;
   const scale=(W-2*padX)/span;
   const kmToX=km=>padX+(km-hw.kmMin)*scale;
@@ -2858,13 +2953,22 @@ function svgRodovia(hw,acidentes){
   svg+=`<text x="${kmToX(hw.kmMin)}" y="${yRoad+27}" text-anchor="middle" fill="#8b949e" font-size="9" font-weight="bold">${hw.kmMin}</text>`;
   svg+=`<text x="${kmToX(hw.kmMax)}" y="${yRoad+27}" text-anchor="middle" fill="#8b949e" font-size="9" font-weight="bold">${hw.kmMax}</text>`;
 
-  // Interseções — linha-guia da marca até a régua (pra ler o KM exato embaixo),
-  // rótulo com o KM já escrito junto, e o KM em destaque (laranja) na régua.
+  // Interseções — cada marco procura a primeira "prateleira" (andar) livre,
+  // ou seja, onde não sobra perto o suficiente do último marco colocado
+  // naquele mesmo andar — bem mais robusto que só olhar o marco anterior
+  // quando há vários grudados em sequência (ex.: vários acessos seguidos).
+  const GAP_MIN=75; // px de folga mínima entre dois rótulos no mesmo andar
+  const ultimoXPorNivel=[];
   hw.marcos.forEach(m=>{
     const x=kmToX(m.km);
-    svg+=`<line x1="${x}" y1="${yRoad-26}" x2="${x}" y2="${yRoad+16}" stroke="#30363d" stroke-width="1" stroke-dasharray="2,2"/>`;
-    svg+=`<line x1="${x}" y1="${yRoad-15}" x2="${x}" y2="${yRoad-26}" stroke="#8b949e" stroke-width="1.2"/>`;
-    svg+=`<text x="${x}" y="${yRoad-29}" text-anchor="start" fill="#c9d1d9" font-size="8.5" transform="rotate(-35 ${x} ${yRoad-29})">${m.label} · km ${m.km}</text>`;
+    let nivel=0;
+    while(nivel<ultimoXPorNivel.length && (x-ultimoXPorNivel[nivel])<GAP_MIN) nivel++;
+    ultimoXPorNivel[nivel]=x;
+    const topoTick=yRoad-15-nivel*20;
+    const topoLabel=topoTick-11;
+    svg+=`<line x1="${x}" y1="${topoLabel}" x2="${x}" y2="${yRoad+16}" stroke="#30363d" stroke-width="1" stroke-dasharray="2,2"/>`;
+    svg+=`<line x1="${x}" y1="${yRoad-15}" x2="${x}" y2="${topoLabel}" stroke="#8b949e" stroke-width="1.2"/>`;
+    svg+=`<text x="${x}" y="${topoLabel-3}" text-anchor="start" fill="#c9d1d9" font-size="7" transform="rotate(-35 ${x} ${topoLabel-3})">${m.label} · km ${m.km}</text>`;
   });
 
   // Pedágio — ícone de cancela (2 colunas + barra), em laranja, acima da pista,
@@ -2935,11 +3039,20 @@ function renderDiagrama(){
   }
 
   lista.forEach(hw=>{
+    // Acessos curtos ("SPA-357/326" etc.) usam KM real, mas têm que bater com
+    // o código COMPLETO da Malha (ex. "357/326"), não só o número da rodovia
+    // principal — senão os mesmos sinistros apareceriam duplicados, tanto no
+    // acesso quanto na rodovia principal (que casa por sufixo, ex. "326").
+    const ehAcesso=hw.codigo.startsWith('SPA-');
+    const malhaAlvo=ehAcesso?hw.codigo.replace('SPA-',''):null;
     const acid=filteredData.filter(r=>{
       if(g==='fatal'&&!r.TF)return false;
       if(g==='grave'&&!r.TG)return false;
       if(g==='leve'&&!r.TL)return false;
-      if(malhaNumeroDiagrama(r.Malha)!==hw.numero)return false;
+      const bateMalha=ehAcesso
+        ?String(r.Malha||'').trim()===malhaAlvo
+        :malhaNumeroDiagrama(r.Malha)===hw.numero;
+      if(!bateMalha)return false;
       const km=parseKmDiagrama(r.KM);
       return km!==null&&km>=hw.kmMin&&km<=hw.kmMax;
     }).map(r=>({km:parseKmDiagrama(r.KM),fatal:r.TF,grave:r.TG}));
