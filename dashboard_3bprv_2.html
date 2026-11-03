@@ -866,7 +866,7 @@ function _startCountdown() {
 
 // Converte row da API para o formato interno do dashboard
 function _apiRowToDBRow(r) {
-  // API v3: [ds, hora, cia, pel, malha, km, mun, rod, tipo, F, G, L, ebr, presos, lat, lon]
+  // API v6: [ds, hora, cia, pel, malha, km, mun, rod, tipo, F, G, L, ebr, presos, lat, lon, sentido]
   const ds = _parseDateBR(String(r[0] || ''));
   if (!ds || ds.length < 10) return null;
 
@@ -909,7 +909,8 @@ function _apiRowToDBRow(r) {
     _getPeriodo(horaStr),
     _getOrAdd(STATIC_META.tipos, tipoStr || 'Não informado'),
     F, G, L,
-    lat, lon
+    lat, lon,
+    String(r[16] || '').trim()   // [19] sentido (Crescente/Decrescente) — vazio se API antiga
   ];
 }
 
@@ -999,7 +1000,7 @@ async function loadFromDrive(silent = false) {
 
 
 
-const I={DA:0,DS:1,HR:2,HN:3,DW:4,AN:5,CI:6,PE:7,ML:8,RO:9,KM:10,MU:11,PR:12,TI:13,F:14,G:15,L:16,LA:17,LO:18};
+const I={DA:0,DS:1,HR:2,HN:3,DW:4,AN:5,CI:6,PE:7,ML:8,RO:9,KM:10,MU:11,PR:12,TI:13,F:14,G:15,L:16,LA:17,LO:18,SE:19};
 
 let allData=[], filteredData=[], charts={};
 
@@ -1051,7 +1052,7 @@ function init(){
     Cia:cias[r[I.CI]],Pel:pels[r[I.PE]],Malha:malhas[r[I.ML]],Rod:rods[r[I.RO]],
     KM:r[I.KM],Mun:muns[r[I.MU]],Per:pers[r[I.PR]],Tipo:tipos[r[I.TI]],
     F:r[I.F]||0,G:r[I.G]||0,L:r[I.L]||0,
-    Lat:r[I.LA]||null,Lon:r[I.LO]||null,
+    Lat:r[I.LA]||null,Lon:r[I.LO]||null,Sentido:r[I.SE]||'',
     TF:(r[I.F]||0)>0,TG:(r[I.G]||0)>0,TL:(r[I.L]||0)>0
   }));
   console.log('🔵 allData após map:', allData.length, '| ex:', allData[0] ? JSON.stringify({Cia:allData[0].Cia,DS:allData[0].DS,F:allData[0].F,G:allData[0].G,L:allData[0].L}) : 'vazio');
@@ -3014,6 +3015,62 @@ const RODOVIAS_DIAGRAMA = {
     {codigo:'SPA-451/310', numero:'', titulo:'SPA-451/310', kmMin:0, kmMax:27, dir1:'OESTE', dir2:'LESTE',
       marcos:[],
       pedagios:[]}
+  ],
+  '4ª CIA': [
+    {codigo:'SP-253', numero:'253', titulo:'DEP. CUNHA BUENO', kmMin:105, kmMax:205, dir1:'SUL', dir2:'NORTE',
+      marcos:[{km:131,label:'SP 330'},{km:173,label:'SP 255'},{km:192,label:'SP 291'}],
+      pedagios:[]},
+    {codigo:'SP-330', numero:'330', titulo:'RODOVIA ANHANGUERA', kmMin:261, kmMax:450, dir1:'SUL', dir2:'NORTE',
+      marcos:[{km:273,label:'SP 253'},{km:307,label:'SP 333'},{km:317,label:'SP 334'},{km:320,label:'CONTORNO NORTE'},{km:355,label:'SPA 355/330'},{km:360,label:'SP 351'},{km:366,label:'SP 328'},{km:386,label:'SP 345'},{km:409,label:'SP 385'}],
+      pedagios:[]},
+    {codigo:'SP-255', numero:'255', titulo:'ANTONIO MACHADO SANTANA', kmMin:2, kmMax:47, dir1:'NORTE', dir2:'SUL',
+      marcos:[{km:28,label:'SP 253'}],
+      pedagios:[45]},
+    {codigo:'SP-291', numero:'291', titulo:'MÁRIO DONEGA', kmMin:1, kmMax:27, dir1:'LESTE', dir2:'OESTE',
+      marcos:[{km:1,label:'SP 322'},{km:26,label:'SP 253'}],
+      pedagios:[]},
+    {codigo:'SP-322', numero:'322', titulo:'ATILIO BALBO', kmMin:307, kmMax:355, dir1:'LESTE', dir2:'OESTE',
+      marcos:[],
+      pedagios:[]},
+    {codigo:'SP-328', numero:'328', titulo:'JOSÉ FREGONEZI', kmMin:289, kmMax:388, dir1:'LESTE', dir2:'OESTE',
+      marcos:[{km:335,label:'SP 330'}],
+      pedagios:[]},
+    {codigo:'SP-333', numero:'333', titulo:'ABRÃO ASSED', kmMin:1, kmMax:103, dir1:'LESTE', dir2:'OESTE',
+      marcos:[{km:1,label:'SP 338'},{km:54,label:'SP 330'},{km:83,label:'SP 322'}],
+      pedagios:[]},
+    {codigo:'SP-334', numero:'334', titulo:'CANDIDO PORTINARI', kmMin:318, kmMax:466, dir1:'LESTE', dir2:'OESTE',
+      marcos:[{km:318,label:'SP 330'},{km:348,label:'SP 351'},{km:393,label:'SP 345'}],
+      pedagios:[]},
+    {codigo:'SP-336', numero:'336', titulo:'RIO NEGRO E SOLIMÕES (TERRA)', kmMin:352, kmMax:400, dir1:'LESTE', dir2:'OESTE',
+      marcos:[{km:352,label:'SP 334'},{km:400,label:'SP 345'}],
+      pedagios:[]},
+    {codigo:'SP-338', numero:'338', titulo:'JOAQUIM FERREIRA', kmMin:292, kmMax:337, dir1:'LESTE', dir2:'OESTE',
+      marcos:[],
+      pedagios:[]},
+    {codigo:'SP-345', numero:'345', titulo:'ENGENHEIRO RONAN ROCHA', kmMin:1, kmMax:112, dir1:'OESTE', dir2:'LESTE',
+      marcos:[{km:32,label:'SP 336'},{km:35,label:'SP 334'},{km:82,label:'SP 330'}],
+      pedagios:[]},
+    {codigo:'SP-351', numero:'351', titulo:'ALTINO ARANTES', kmMin:1, kmMax:103, dir1:'LESTE', dir2:'OESTE',
+      marcos:[{km:15,label:'SP 338'},{km:53,label:'SP 334'},{km:88,label:'SP 330'}],
+      pedagios:[]},
+    {codigo:'SP-373', numero:'373', titulo:'DONA GENOVEVA LIMA DE CARVALHO', kmMin:103, kmMax:136, dir1:'LESTE', dir2:'OESTE',
+      marcos:[],
+      pedagios:[]},
+    {codigo:'SP-385', numero:'385', titulo:'DOUTOR WILLIAM AMIM', kmMin:10, kmMax:22, dir1:'LESTE', dir2:'OESTE',
+      marcos:[],
+      pedagios:[]},
+    {codigo:'SP-425', numero:'425', titulo:'PAULO BORGES DE OLIVEIRA', kmMin:23, kmMax:41, dir1:'LESTE', dir2:'OESTE',
+      marcos:[],
+      pedagios:[]},
+    {codigo:'SPA-310/338', numero:'', titulo:'SPA-310/338', kmMin:0, kmMax:18, dir1:'LESTE', dir2:'OESTE', marcos:[], pedagios:[]},
+    {codigo:'SPA-327/330', numero:'', titulo:'SPA-327/330', kmMin:0, kmMax:18, dir1:'LESTE', dir2:'OESTE', marcos:[], pedagios:[]},
+    {codigo:'SP-413', numero:'413', titulo:'SP-413', kmMin:0, kmMax:18, dir1:'LESTE', dir2:'OESTE', marcos:[], pedagios:[]},
+    {codigo:'SPA-348/334', numero:'', titulo:'SPA-348/334', kmMin:0, kmMax:18, dir1:'LESTE', dir2:'OESTE', marcos:[], pedagios:[]},
+    {codigo:'SPA-420/334', numero:'', titulo:'SPA-420/334', kmMin:0, kmMax:18, dir1:'LESTE', dir2:'OESTE', marcos:[], pedagios:[]},
+    {codigo:'SPA-343/322', numero:'', titulo:'SPA-343/322', kmMin:0, kmMax:18, dir1:'LESTE', dir2:'OESTE', marcos:[], pedagios:[]},
+    {codigo:'SP-271', numero:'271', titulo:'SP-271', kmMin:0, kmMax:18, dir1:'LESTE', dir2:'OESTE', marcos:[], pedagios:[]},
+    {codigo:'SPA-101/345', numero:'', titulo:'SPA-101/345', kmMin:0, kmMax:18, dir1:'LESTE', dir2:'OESTE', marcos:[], pedagios:[]},
+    {codigo:'SPA-457/334', numero:'', titulo:'SPA-457/334', kmMin:0, kmMax:18, dir1:'LESTE', dir2:'OESTE', marcos:[], pedagios:[]}
   ]
 };
 
@@ -3097,7 +3154,7 @@ function svgRodovia(hw,acidentes){
     const dy=usados[x]*9;
     usados[x]++;
     const cor=a.fatal?'#f85149':(a.grave?'#ff8c00':'#d29922');
-    svg+=`<circle cx="${x}" cy="${yRoad+42+dy}" r="4" fill="${cor}" stroke="#0d1117" stroke-width="1"><title>km ${a.km}</title></circle>`;
+    svg+=`<circle cx="${x}" cy="${yRoad+42+dy}" r="4" fill="${cor}" stroke="#0d1117" stroke-width="1"><title>km ${a.km}${[a.tipo,a.sentido?'Sentido: '+a.sentido:''].filter(Boolean).map(t=>'\n'+String(t).replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]))).join('')}</title></circle>`;
   });
 
   svg+=`</svg>`;
@@ -3159,7 +3216,7 @@ function renderDiagrama(){
       if(!bateMalha)return false;
       const km=parseKmDiagrama(r.KM);
       return km!==null&&km>=hw.kmMin&&km<=hw.kmMax;
-    }).map(r=>({km:parseKmDiagrama(r.KM),fatal:r.TF,grave:r.TG}));
+    }).map(r=>({km:parseKmDiagrama(r.KM),fatal:r.TF,grave:r.TG,tipo:r.Tipo||'',sentido:r.Sentido||''}));
 
     html+=`<div class="card" style="padding:16px 20px;margin-bottom:14px">
       <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px">
