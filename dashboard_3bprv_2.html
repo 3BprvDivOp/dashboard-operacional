@@ -29,6 +29,15 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 .filters{padding:10px 24px;background:var(--bg);display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;border-bottom:1px solid var(--border)}
 .fg{display:flex;flex-direction:column;gap:3px}
 .fl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.msel{position:relative}
+.msel-btn{background:var(--card);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:5px 8px;font-size:12px;min-width:110px;display:flex;justify-content:space-between;align-items:center;gap:8px;cursor:pointer;font-family:inherit;text-align:left}
+.msel-seta{font-size:9px;opacity:.7}
+.msel-menu{display:none;position:absolute;top:calc(100% + 3px);left:0;z-index:2000;background:var(--card);border:1px solid var(--border);border-radius:6px;padding:6px 0;min-width:150px;box-shadow:0 6px 18px rgba(0,0,0,.5)}
+.msel-menu.aberto{display:block}
+.msel-menu label{display:flex;align-items:center;gap:8px;padding:5px 12px;font-size:12px;color:var(--text);cursor:pointer;white-space:nowrap}
+.msel-menu label:hover{background:rgba(240,168,48,.12)}
+.msel-menu input{accent-color:#f0a830;cursor:pointer}
+.msel-dica{white-space:nowrap;font-size:10px;color:var(--muted);padding:5px 12px 2px;border-top:1px solid var(--border);margin-top:4px}
 .filters select,.filters input[type=date]{background:var(--card);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:5px 8px;font-size:12px;min-width:110px}
 .btn-apply{padding:6px 18px;background:var(--gold);color:#000;border:none;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer}
 .btn-clear{padding:6px 12px;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:6px;font-size:12px;cursor:pointer}
@@ -385,7 +394,15 @@ tr:hover td{background:var(--surface)}
   <div class="fg"><div class="fl">Pelotão</div><select id="fPelotao"><option value="">Todos</option></select></div>
   <div class="fg"><div class="fl">Rodovia</div><select id="fRodovia"><option value="">Todas</option></select></div>
   <div class="fg"><div class="fl">Gravidade</div>
-    <select id="fGrav"><option value="">Todas</option><option value="fatal">Fatais</option><option value="grave">Graves</option><option value="leve">Leves</option></select>
+    <div class="msel" id="fGravBox">
+      <button type="button" class="msel-btn" id="fGrav" onclick="toggleGravMenu(event)"><span id="fGravTxt">Todas</span><span class="msel-seta">▾</span></button>
+      <div class="msel-menu" id="fGravMenu">
+        <label><input type="checkbox" value="fatal" onchange="onGravCheck()"> Fatais</label>
+        <label><input type="checkbox" value="grave" onchange="onGravCheck()"> Graves</label>
+        <label><input type="checkbox" value="leve" onchange="onGravCheck()"> Leves</label>
+        <div class="msel-dica">Nenhuma marcada = Todas</div>
+      </div>
+    </div>
   </div>
   <div class="fg"><div class="fl">Período</div><select id="fPeriodo"><option value="">Todos</option></select></div>
   <div class="fg"><div class="fl">Tipo acidente</div><select id="fTipo"><option value="">Todos</option></select></div>
@@ -1092,9 +1109,28 @@ function populateFilters(){
   fill('fTipo',allData.map(r=>r.Tipo).filter(t=>t&&t!=='--'),'Todos');
 }
 
+// ── Filtro de Gravidade com seleção múltipla ──
+function gravMarcadas(){
+  return Array.from(document.querySelectorAll('#fGravMenu input:checked')).map(c=>c.value);
+}
+function onGravCheck(){
+  const nomes={fatal:'Fatais',grave:'Graves',leve:'Leves'};
+  const m=gravMarcadas();
+  document.getElementById('fGravTxt').textContent=(m.length===0||m.length===3)?'Todas':m.map(v=>nomes[v]).join(' + ');
+}
+function toggleGravMenu(ev){
+  ev.stopPropagation();
+  document.getElementById('fGravMenu').classList.toggle('aberto');
+}
+document.addEventListener('click',ev=>{
+  const box=document.getElementById('fGravBox');
+  if(box&&!box.contains(ev.target))document.getElementById('fGravMenu').classList.remove('aberto');
+});
+
 function applyAndRender(){
   const g=id=>document.getElementById(id).value;
-  const[ano,cia,pel,rod,grav,per,tip,din,dfim]=[g('fAno'),g('fCia'),g('fPelotao'),g('fRodovia'),g('fGrav'),g('fPeriodo'),g('fTipo'),g('fDataIn'),g('fDataFim')];
+  const[ano,cia,pel,rod,per,tip,din,dfim]=[g('fAno'),g('fCia'),g('fPelotao'),g('fRodovia'),g('fPeriodo'),g('fTipo'),g('fDataIn'),g('fDataFim')];
+  const grav=gravMarcadas(); // seleção múltipla; vazio = todas
   filteredData=allData.filter(r=>{
     if(ano&&r.Ano!==ano)return false;
     if(cia&&r.Cia!==cia)return false;
@@ -1104,9 +1140,8 @@ function applyAndRender(){
     if(tip&&r.Tipo!==tip)return false;
     if(din&&r.DS<din)return false;
     if(dfim&&r.DS>dfim)return false;
-    if(grav==='fatal'&&!r.TF)return false;
-    if(grav==='grave'&&!r.TG)return false;
-    if(grav==='leve'&&!r.TL)return false;
+    // entra se tiver vítima em QUALQUER uma das gravidades marcadas
+    if(grav.length&&!((grav.includes('fatal')&&r.TF)||(grav.includes('grave')&&r.TG)||(grav.includes('leve')&&r.TL)))return false;
     return true;
   });
   renderAll();
@@ -1114,7 +1149,8 @@ function applyAndRender(){
 }
 
 function clearFilters(){
-  ['fAno','fCia','fPelotao','fRodovia','fGrav','fPeriodo','fTipo'].forEach(id=>document.getElementById(id).value='');
+  ['fAno','fCia','fPelotao','fRodovia','fPeriodo','fTipo'].forEach(id=>document.getElementById(id).value='');
+  document.querySelectorAll('#fGravMenu input').forEach(c=>c.checked=false); onGravCheck();
   const [ini,fim]=computeDateRangeForAno('');
   document.getElementById('fDataIn').value=ini;
   document.getElementById('fDataFim').value=fim;
