@@ -2509,6 +2509,14 @@ function calCarregar(forcar){
     });
 }
 
+// A partir de NOVEMBRO/2026 o destaque roxo vem da 2ª linha do BPRv.
+// Meses anteriores mantêm a regra antiga (3+ CIAs com o mesmo texto).
+function calRegraDestaqueNova(mes,ano){
+  const MESES=['JANEIRO','FEVEREIRO','MARÇO','ABRIL','MAIO','JUNHO','JULHO','AGOSTO','SETEMBRO','OUTUBRO','NOVEMBRO','DEZEMBRO'];
+  const m=MESES.indexOf(String(mes||'').toUpperCase())+1, a=parseInt(ano,10);
+  return a>2026||(a===2026&&m>=11);
+}
+
 function calRenderGrid(json,mes,ano){
   const grid=document.getElementById('calGrid');
   const chaves=Object.keys(json.dias||{}).sort();
@@ -2542,15 +2550,22 @@ function calRenderGrid(json,mes,ano){
     // (célula mesclada na planilha, seja pra 2, 3 ou as 4 CIAs), destaca num único
     // bloco roxo — chama mais atenção que repetir a mesma linha várias vezes.
     // Operações exclusivas de uma única CIA continuam na cor daquela CIA.
+    //
+    // REGRA NOVA a partir de NOV/2026: o bloco roxo vem SOMENTE da 2ª linha do
+    // BPRv na planilha (campo "bprvDestaque" da API). As CIAs aparecem sempre
+    // na própria cor, mesmo com o mesmo texto em 3 ou 4 CIAs.
+    const regraNova=calRegraDestaqueNova(mes,ano);
+    const destaqueTxt=(d.bprvDestaque||[]).join(', ');
     const grupos={};
     ciasOrdem.forEach((cia,idx)=>{
       const txt=ciaTxt[idx];
       if(!txt)return;
       (grupos[txt]=grupos[txt]||[]).push(cia);
     });
-    const ciaRows=Object.keys(grupos).map(txt=>{
+    const destaqueRow=(regraNova&&destaqueTxt)?`<div class="cal-op-geral"><span class="cal-op-geral-ico">⚠</span><span>${destaqueTxt}</span></div>`:'';
+    const ciaRows=destaqueRow+Object.keys(grupos).map(txt=>{
       const ciasDoGrupo=grupos[txt];
-      if(ciasDoGrupo.length>=3){
+      if(!regraNova&&ciasDoGrupo.length>=3){
         return `<div class="cal-op-geral"><span class="cal-op-geral-ico">⚠</span><span>${txt}</span></div>`;
       }
       return ciasDoGrupo.map(cia=>`<div class="cal-cia-row"><span class="cal-cia-dot" style="background:${CAL_CIA_COR[cia]}"></span><span class="cal-cia-txt">${txt}</span></div>`).join('');
