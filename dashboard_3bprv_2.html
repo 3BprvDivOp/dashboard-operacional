@@ -333,6 +333,22 @@ tr:hover td{background:var(--surface)}
 .rda-arrow.down{background:var(--fatal);color:#2a0605}
 .rda-arrow.eq{background:var(--border);color:var(--muted)}
 .rda-loading{text-align:center;padding:60px 20px;color:var(--muted);font-size:13px}
+/* Aba Operação em Curso (painel da operação embutido, carregado só no 1º clique) */
+.op-tab-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#3fb950;margin-right:7px;vertical-align:middle;box-shadow:0 0 0 0 rgba(63,185,80,.6);animation:opPulso 2s infinite}
+@keyframes opPulso{70%{box-shadow:0 0 0 7px rgba(63,185,80,0)}100%{box-shadow:0 0 0 0 rgba(63,185,80,0)}}
+.op-barra{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.op-barra .cs{margin:0}
+.op-acoes{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.op-btn{background:#f0a830;border:none;color:#0d1117;font-weight:700;border-radius:6px;padding:7px 14px;cursor:pointer;font-family:'Oswald',sans-serif;font-size:13px;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+.op-btn.sec{background:transparent;color:var(--muted);border:1px solid var(--border)}
+.op-btn.sec:hover{color:#e6edf3}
+.op-frame-box{position:relative;border-radius:12px;overflow:hidden;border:1px solid var(--border);background:#0f1317;height:calc(100vh - 230px);min-height:620px}
+.op-frame-box iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:block}
+.op-load{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:var(--muted);font-size:13px;text-align:center;padding:20px}
+.op-spin{width:34px;height:34px;border-radius:50%;border:3px solid rgba(240,168,48,.2);border-top-color:#f0a830;animation:opGira .9s linear infinite}
+@keyframes opGira{to{transform:rotate(360deg)}}
+@media (max-width:768px){.op-frame-box{height:calc(100vh - 170px);min-height:520px}.op-acoes{margin-left:0}}
+@media (prefers-reduced-motion:reduce){.op-tab-dot,.op-spin{animation:none}}
 @media (max-width:900px){
   .rda-layout{flex-direction:column}
   .rda-sidebar{width:100%;flex-direction:row;flex-wrap:wrap;position:static}
@@ -377,6 +393,7 @@ tr:hover td{background:var(--surface)}
   <div class="tab" onclick="showTab('mapa',this);initMap()">Mapa</div>
   <div class="tab" onclick="showTab('daily',this);rdaSelectView('sinistro')">Acomp. Diário</div>
   <div class="tab" onclick="showTab('calendario',this);enterCalendario()">Calendário de Operações</div>
+  <div class="tab" onclick="showTab('operacao',this);enterOperacao()"><span class="op-tab-dot"></span>Operação em Curso</div>
   <div class="tab" onclick="showTab('telemetria',this)">Telemetria</div>
   <div class="tab" onclick="showTab('auditoria',this)">Auditoria</div>
 </div>
@@ -765,6 +782,23 @@ tr:hover td{background:var(--surface)}
     <div id="calGrid">
       <div class="rda-loading">Selecione um mês.</div>
     </div>
+  </div>
+</div>
+
+<!-- OPERAÇÃO EM CURSO (painel da operação, Apps Script "Resultado de Operações") -->
+<div class="tc" id="tab-operacao">
+  <div class="op-barra">
+    <div>
+      <div class="ct" style="margin:0">operação em curso</div>
+      <div class="cs">Resultado de Operações · ao vivo</div>
+    </div>
+    <div class="op-acoes">
+      <button type="button" class="op-btn sec" onclick="recarregarOperacao()">↻ Recarregar</button>
+      <a class="op-btn" id="opTelaCheia" href="#" target="_blank" rel="noopener">⤢ Abrir em tela cheia</a>
+    </div>
+  </div>
+  <div class="op-frame-box" id="opFrameBox">
+    <div class="op-load" id="opLoad"><div class="op-spin"></div><div>Carregando painel da operação…</div></div>
   </div>
 </div>
 
@@ -1163,7 +1197,7 @@ function showTab(id,el){
   document.getElementById('tab-'+id).classList.add('active');el.classList.add('active');
   // KPIs e filtros são dados do BOPM (sinistros) — não fazem sentido nas abas
   // que usam outra fonte de dados (RDA), então ficam escondidos ali.
-  const semFiltrosBopm=(id==='daily'||id==='calendario');
+  const semFiltrosBopm=(id==='daily'||id==='calendario'||id==='operacao');
   document.getElementById('mainKpiBar').style.display=semFiltrosBopm?'none':'';
   document.getElementById('mainFilters').style.display=semFiltrosBopm?'none':'';
 }
@@ -2476,6 +2510,50 @@ const CAL_DOW_CURTO=['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
 const CAL_CIA_COR={'1ª CIA':'#e8d44d','2ª CIA':'#3fb950','3ª CIA':'#22d3c5','4ª CIA':'#f0a830'};
 const CAL_CACHE={}; // CAL_CACHE['SETEMBRO-2026'] = {dias:{...}}
 let calSelecaoIniciada=false;
+
+// ===== OPERAÇÃO EM CURSO =====
+// Link /exec do projeto Apps Script "Resultado de Operações". Para trocar a operação exibida,
+// não mexa aqui: basta marcar ATIVA na planilha "Resultado de Operações – CONFIG".
+const PAINEL_OPERACAO_URL = 'https://script.google.com/macros/s/AKfycbztImUmWEzDSmxgDgNqQIQEH5t-ip2k8Iq0k1XezxkqGMAHd7NqZ2fYqZHV8N3IkJnR/exec';
+let opCarregado = false;
+
+function enterOperacao(){
+  const box = document.getElementById('opFrameBox');
+  const load = document.getElementById('opLoad');
+  const link = document.getElementById('opTelaCheia');
+  const urlOk = /^https:\/\/script\.google\.com\/.+\/exec/.test(PAINEL_OPERACAO_URL);
+  link.href = urlOk ? PAINEL_OPERACAO_URL : '#';
+  if (!urlOk){
+    load.innerHTML = '<div>Link do painel da operação ainda não configurado.</div><div style="font-size:12px">Cole o link /exec em PAINEL_OPERACAO_URL no código desta página.</div>';
+    return;
+  }
+  if (opCarregado) return;            // só carrega no primeiro clique
+  opCarregado = true;
+  const f = document.createElement('iframe');
+  f.title = 'Painel da operação em curso';
+  f.src = PAINEL_OPERACAO_URL;
+  f.allow = 'clipboard-write';
+  f.style.opacity = '0';
+  f.addEventListener('load', () => { load.style.display = 'none'; f.style.opacity = '1'; });
+  box.appendChild(f);
+  // Se demorar demais (rede lenta), oferece abrir fora
+  setTimeout(() => {
+    if (load.style.display !== 'none'){
+      load.innerHTML = '<div class="op-spin"></div><div>Está demorando mais que o normal…</div><a class="op-btn" href="' + PAINEL_OPERACAO_URL + '" target="_blank" rel="noopener">Abrir em tela cheia</a>';
+    }
+  }, 15000);
+}
+
+function recarregarOperacao(){
+  const box = document.getElementById('opFrameBox');
+  const f = box.querySelector('iframe');
+  const load = document.getElementById('opLoad');
+  if (f) f.remove();
+  load.style.display = '';
+  load.innerHTML = '<div class="op-spin"></div><div>Carregando painel da operação…</div>';
+  opCarregado = false;
+  enterOperacao();
+}
 
 function enterCalendario(){
   if(calSelecaoIniciada)return;
